@@ -8,7 +8,6 @@ import net.minecraft.resources.ResourceLocation
 import net.minecraft.world.item.CreativeModeTab
 import net.minecraft.world.item.CreativeModeTabs
 import net.minecraft.world.item.Item
-import quest.nekoniyah.empyriummod.items.CustomItem
 import quest.nekoniyah.empyriummod.items.TestItem
 
 object ModItems {
@@ -27,7 +26,7 @@ object ModItems {
     fun listenItemGroupEventWith(key: ResourceKey<CreativeModeTab>) {
         ItemGroupEvents.modifyEntriesEvent(key).register { e ->
             for (item in registeredItems) {
-                if(item.tabs == null) continue
+                if (item.tabs == null) continue
                 if ((item.tabs as Iterable<Any?>).contains(key)) e.accept(item.item)
             }
         }

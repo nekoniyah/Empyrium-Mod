@@ -1,7 +1,8 @@
 package quest.nekoniyah.empyriummod.difficulty
 
 import com.mojang.brigadier.arguments.StringArgumentType
-import com.mojang.brigadier.builder.LiteralArgumentBuilder
+import com.mojang.brigadier.builder.ArgumentBuilder
+import com.mojang.brigadier.builder.RequiredArgumentBuilder
 import com.mojang.brigadier.context.CommandContext
 import net.fabricmc.fabric.api.entity.event.v1.ServerPlayerEvents
 import net.minecraft.ChatFormatting
@@ -9,8 +10,9 @@ import net.minecraft.commands.CommandSourceStack
 import net.minecraft.commands.Commands
 import net.minecraft.network.chat.*
 import net.minecraft.server.level.ServerPlayer
+import quest.nekoniyah.empyriummod.commands.SubcommandHolder
 
-class EmpyriumDifficulty(val attachments: DifficultyAttachments){
+class EmpyriumDifficulty(val attachments: DifficultyAttachments) : SubcommandHolder("difficulty") {
     val dict = HashMap<String, String>()
 
     init {
@@ -18,13 +20,19 @@ class EmpyriumDifficulty(val attachments: DifficultyAttachments){
         dict["safe"] = "Inventory and XP is preserved on death."
     }
 
-    val command: LiteralArgumentBuilder<CommandSourceStack?>? = Commands.literal("difficulty").then(
-        Commands.argument("selector", StringArgumentType.string()).then(
-            Commands.argument(
-                "name", StringArgumentType.string()
-            ).executes(::definePlayerDifficulty)
-        )
+    override fun execute(source: CommandContext<CommandSourceStack>): Int {
+        return 0
+    }
+
+    val selectDifficultyCommand: ArgumentBuilder<CommandSourceStack, *> = Commands.argument("selector", StringArgumentType.string()).then(
+        Commands.argument(
+            "name", StringArgumentType.string()
+        ).executes(::definePlayerDifficulty)
     )
+
+    override fun subcommands(): List<ArgumentBuilder<CommandSourceStack, *>> {
+        return listOf(selectDifficultyCommand)
+    }
 
     fun definePlayerDifficulty(ctx: CommandContext<CommandSourceStack>): Int {
         val selector = StringArgumentType.getString(ctx, "selector")
