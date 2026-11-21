@@ -1,13 +1,11 @@
 package quest.nekoniyah.empyriummod.mixin;
 
-import net.minecraft.world.entity.LivingEntity;
+import com.llamalad7.mixinextras.injector.wrapmethod.WrapMethod;
+import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import net.minecraft.world.entity.player.Player;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
-import org.spongepowered.asm.mixin.injection.At;
-import org.spongepowered.asm.mixin.injection.Inject;
-import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import quest.nekoniyah.empyriummod.EmpyriumMod;
 import quest.nekoniyah.empyriummod.factions.powers.FactionAbility;
 import quest.nekoniyah.empyriummod.storage.Ability;
@@ -23,43 +21,36 @@ public abstract class PlayerMixin {
     @Shadow
     protected abstract void updatePlayerPose();
 
-    @Inject(method = "tryToStartFallFlying", at = @At("HEAD"), cancellable = true)
-    private void allowElytraFlight(CallbackInfoReturnable<Boolean> cir) {
-        FactionEntry faction = getFaction();
 
-        if (faction == null) return;
+    @WrapMethod(method = "tryToStartFallFlying")
+    private boolean allowElytraFlight(Operation<Boolean> original) {
+        FactionEntry faction = getFaction((Player) (Object) this);
+
+        if (faction == null) return original.call();
 
         boolean hasFallFlyingAbility = false;
 
         for (Ability ability : faction.getAbilities()) {
             FactionAbility workingAbility = EmpyriumMod.INSTANCE.getFactions().getWorkingAbility(ability);
-
-            if (isWrongMixin(ability, "fallflying")) continue;
-
-            assert workingAbility != null;
-
+            if (workingAbility == null) continue;
+            if (isWrongMixin(workingAbility, "fallflying")) continue;
             hasFallFlyingAbility = true;
-            break;
         }
 
-        if (!hasFallFlyingAbility) return;
+        Player player = (Player) (Object) this;
 
-        LivingEntity entity = (LivingEntity) (Object) this;
-
-        if (entity.onGround() || entity.onClimbable() || entity.isInWater()) {
-            return;
-        }
+        if (!hasFallFlyingAbility || player.onGround() || player.onClimbable() || player.isInWall() || player.isOnFire())
+            return original.call();
 
         this.startFallFlying();
         this.updatePlayerPose();
-        cir.setReturnValue(true);
+
+        return hasFallFlyingAbility;
     }
 
     @Unique
-    private FactionEntry getFaction() {
-        Player player = ((Player) (Object) this);
+    private FactionEntry getFaction(Player player) {
         String playerFactionName = player.getAttached(EmpyriumMod.INSTANCE.getFactions().getAttachments().getFACTION());
-
 
         if (playerFactionName == null) return null;
 
@@ -73,5 +64,11 @@ public abstract class PlayerMixin {
 
         if (workingAbility.getData().getMixin() == null) return true;
         return !Objects.equals(workingAbility.getData().getMixin(), mixin);
+    }
+
+    @Unique
+    private boolean isWrongMixin(FactionAbility ability, String mixin) {
+        if (ability.getData().getMixin() == null) return true;
+        return !Objects.equals(ability.getData().getMixin(), mixin);
     }
 }

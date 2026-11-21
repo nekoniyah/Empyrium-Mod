@@ -1,6 +1,8 @@
 package quest.nekoniyah.empyriummod.storage
 
 import kotlinx.serialization.Serializable
+import net.minecraft.resources.ResourceKey
+import net.minecraft.world.damagesource.DamageType
 
 @Serializable
 data class SettingsData(val factions: ArrayList<FactionEntry>?)
@@ -16,12 +18,13 @@ data class FactionEntry(
 @Serializable
 data class Ability(
     val name: String? = null,
-    val displayName: String?  = null,
+    val displayName: String? = null,
     val description: String? = null,
     val identifier: String,
     val passive: Boolean = true,
     val keybind: Int? = null,
     val cooldown: Int? = null,
     val isAttribute: Boolean? = false,
-    val mixin: String? = null
+    val mixin: String? = null,
+    val damageTags: List<String>? = null
 )

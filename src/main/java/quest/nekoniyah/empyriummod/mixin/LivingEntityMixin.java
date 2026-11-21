@@ -2,17 +2,22 @@ package quest.nekoniyah.empyriummod.mixin;
 
 import com.llamalad7.mixinextras.injector.wrapmethod.WrapMethod;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
+import net.minecraft.core.registries.Registries;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.resources.ResourceKey;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.damagesource.DamageSource;
+import net.minecraft.world.damagesource.DamageType;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.Pose;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.level.gameevent.GameEvent;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
-import org.spongepowered.asm.mixin.injection.ModifyVariable;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import quest.nekoniyah.empyriummod.EmpyriumMod;
 import quest.nekoniyah.empyriummod.factions.powers.AttributeCalc;
@@ -21,6 +26,7 @@ import quest.nekoniyah.empyriummod.factions.powers.FactionAbility;
 import quest.nekoniyah.empyriummod.storage.Ability;
 import quest.nekoniyah.empyriummod.storage.FactionEntry;
 
+import java.util.List;
 import java.util.Objects;
 
 @Mixin(LivingEntity.class)
@@ -28,11 +34,8 @@ public abstract class LivingEntityMixin {
     @Shadow
     public abstract boolean isFallFlying();
 
-    @Unique
-    protected boolean canPlayerFitWithinBlocksAndEntitiesWhen(Pose pose) {
-        Player player = ((Player) (Object) this);
-        return player.level().noCollision(player, player.getDimensions(pose).makeBoundingBox(player.position()).deflate(1.0E-7));
-    }
+    @Shadow
+    public abstract void addAdditionalSaveData(CompoundTag compoundTag);
 
     @Inject(method = "dropAllDeathLoot", at = @At("HEAD"), cancellable = true)
     private void onDropAtDeath(ServerLevel serverLevel, DamageSource damageSource, CallbackInfo ci) {
@@ -42,15 +45,16 @@ public abstract class LivingEntityMixin {
         }
     }
 
-    @ModifyVariable(method = "hurt", at = @At("HEAD"), argsOnly = true, ordinal = 0)
-    private float multiplyPlayerDamage(float amount) {
-        if ((Object) this instanceof Player) {
-            FactionEntry faction = getFaction();
-            if (faction == null) return amount;
-            return modifyAmount(((Player) (Object) this), amount, "hurt");
+    @WrapMethod(method = "hurt")
+    private boolean multiplyPlayerDamage(DamageSource damageSource, float f, Operation<Boolean> original) {
+        if ((Object) this instanceof Player player) {
+            FactionEntry faction = getFaction(player);
+            if (faction == null) return original.call(damageSource, f);
+            float amount = modifyAmount(damageSource, ((Player) (Object) this), f, "hurt");
+            original.call(damageSource, amount);
         }
 
-        return amount;
+        return original.call(damageSource, f);
     }
 
 
@@ -64,8 +68,7 @@ public abstract class LivingEntityMixin {
     }
 
     @Unique
-    private FactionEntry getFaction() {
-        Player player = ((Player) (Object) this);
+    private FactionEntry getFaction(Player player) {
         String playerFactionName = player.getAttached(EmpyriumMod.INSTANCE.getFactions().getAttachments().getFACTION());
 
         if (playerFactionName == null) return null;
@@ -75,8 +78,8 @@ public abstract class LivingEntityMixin {
     }
 
     @Unique
-    private float modifyAmount(Player player, float amount, String mixin) {
-        FactionEntry faction = getFaction();
+    private float modifyAmount(DamageSource source, Player player, float amount, String mixin) {
+        FactionEntry faction = getFaction(player);
         if (faction == null) return amount;
         float newAmount = amount;
 
@@ -88,74 +91,60 @@ public abstract class LivingEntityMixin {
             assert workingAbility != null;
             AttributeCalc calc = (AttributeCalc) workingAbility.execute(player);
 
-            if (calc.getType().equals(AttributeCalcType.MULTIPLY)) {
-                newAmount += amount * calc.getValue();
+            List<String> tags = workingAbility.getData().getDamageTags();
+
+            boolean dontMultiply = false;
+
+
+            if (tags != null) {
+                for (String damage : tags) {
+                    ResourceKey<DamageType> dmg = ResourceKey.create(Registries.DAMAGE_TYPE, ResourceLocation.parse(damage));
+
+                    if (source.is(dmg)) {
+                        dontMultiply = true;
+                    }
+                }
+
+            }
+
+
+            if (!dontMultiply) {
+                assert calc != null;
+                if (calc.getType().equals(AttributeCalcType.MULTIPLY)) {
+                    newAmount += amount * calc.getValue();
+                }
             }
         }
 
         return newAmount;
     }
 
-    @WrapMethod(method = "updateFallFlying")
-    private void keepFallFlying(Operation<Void> original) {
+    @Inject(method = "updateFallFlying", at = @At("HEAD"), cancellable = true)
+    private void keepFallFlying(CallbackInfo ci) {
         if ((Object) this instanceof Player player) {
-            FactionEntry faction = getFaction();
+            FactionEntry faction = getFaction(player);
 
-            if (faction == null) {
-                original.call();
-                return;
-            }
+            if (faction == null) return;
 
             boolean hasFallFlyingAbility = false;
 
             for (Ability ability : faction.getAbilities()) {
                 FactionAbility workingAbility = EmpyriumMod.INSTANCE.getFactions().getWorkingAbility(ability);
 
+                if (workingAbility == null) continue;
                 if (isWrongMixin(ability, "fallflying")) continue;
-
-                assert workingAbility != null;
 
                 hasFallFlyingAbility = true;
                 break;
             }
 
-            if (!hasFallFlyingAbility || player.onGround() || player.isInWater() || player.isInWall()) {
-                original.call();
+            if (!hasFallFlyingAbility || player.onGround() || player.isInWater() || player.isInWall() || !this.isFallFlying())
                 return;
-            }
 
-            if (this.canPlayerFitWithinBlocksAndEntitiesWhen(Pose.SWIMMING)) {
-                Pose pose;
-                if (this.isFallFlying()) {
-                    pose = Pose.FALL_FLYING;
-                } else if (player.isSleeping()) {
-                    pose = Pose.SLEEPING;
-                } else if (player.isSwimming()) {
-                    pose = Pose.SWIMMING;
-                } else if (player.isAutoSpinAttack()) {
-                    pose = Pose.SPIN_ATTACK;
-                } else if (player.isShiftKeyDown() && !player.getAbilities().flying) {
-                    pose = Pose.CROUCHING;
-                } else {
-                    pose = Pose.STANDING;
-                }
-
-                Pose pose2;
-                if (!player.isSpectator() && !player.isPassenger() && !this.canPlayerFitWithinBlocksAndEntitiesWhen(pose)) {
-                    if (this.canPlayerFitWithinBlocksAndEntitiesWhen(Pose.CROUCHING)) {
-                        pose2 = Pose.CROUCHING;
-                    } else {
-                        pose2 = Pose.SWIMMING;
-                    }
-                } else {
-                    pose2 = pose;
-                }
-
-                player.setPose(pose2);
-            }
-
-
-            if (!this.isFallFlying()) original.call();
+            ci.cancel();
+            player.setPose(Pose.FALL_FLYING);
+            player.gameEvent(GameEvent.ELYTRA_GLIDE);
+            player.startFallFlying();
         }
     }
 }
