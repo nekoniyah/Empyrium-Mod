@@ -3,7 +3,6 @@
   "package": "quest.nekoniyah.empyriummod.mixin",
   "compatibilityLevel": "JAVA_21",
   "mixins": [
-    "ExampleMixin",
     "LivingEntityMixin",
     "PlayerMixin"
   ],
@@ -12,5 +11,7 @@
   },
   "overwrites": {
     "requireAnnotations": true
-	}
+  },
+  "priority": 100,
+  "mixinPriority": 100
 }

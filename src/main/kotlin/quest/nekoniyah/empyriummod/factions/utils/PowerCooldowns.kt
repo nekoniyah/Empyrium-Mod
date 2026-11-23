@@ -1,3 +1,3 @@
-package quest.nekoniyah.empyriummod.factions.powers
+package quest.nekoniyah.empyriummod.factions.utils
 
 val PowerCooldowns = mutableListOf<PowerCooldown>()

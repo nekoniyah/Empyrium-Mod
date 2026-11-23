@@ -1,4 +1,4 @@
-package quest.nekoniyah.empyriummod.factions
+package quest.nekoniyah.empyriummod.factions.utils
 
 import com.mojang.serialization.Codec
 import net.fabricmc.fabric.api.attachment.v1.AttachmentRegistry

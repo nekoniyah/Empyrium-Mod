@@ -3,7 +3,6 @@ package quest.nekoniyah.empyriummod.mixin;
 import com.llamalad7.mixinextras.injector.wrapmethod.WrapMethod;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import net.minecraft.core.registries.Registries;
-import net.minecraft.nbt.CompoundTag;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
@@ -20,11 +19,10 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import quest.nekoniyah.empyriummod.EmpyriumMod;
-import quest.nekoniyah.empyriummod.factions.powers.AttributeCalc;
-import quest.nekoniyah.empyriummod.factions.powers.AttributeCalcType;
-import quest.nekoniyah.empyriummod.factions.powers.FactionAbility;
-import quest.nekoniyah.empyriummod.storage.Ability;
-import quest.nekoniyah.empyriummod.storage.FactionEntry;
+import quest.nekoniyah.empyriummod.factions.utils.EmpyriumFaction;
+import quest.nekoniyah.empyriummod.factions.utils.AttributeCalc;
+import quest.nekoniyah.empyriummod.factions.utils.AttributeCalcType;
+import quest.nekoniyah.empyriummod.factions.utils.FactionAbility;
 
 import java.util.List;
 import java.util.Objects;
@@ -33,9 +31,6 @@ import java.util.Objects;
 public abstract class LivingEntityMixin {
     @Shadow
     public abstract boolean isFallFlying();
-
-    @Shadow
-    public abstract void addAdditionalSaveData(CompoundTag compoundTag);
 
     @Inject(method = "dropAllDeathLoot", at = @At("HEAD"), cancellable = true)
     private void onDropAtDeath(ServerLevel serverLevel, DamageSource damageSource, CallbackInfo ci) {
@@ -48,8 +43,7 @@ public abstract class LivingEntityMixin {
     @WrapMethod(method = "hurt")
     private boolean multiplyPlayerDamage(DamageSource damageSource, float f, Operation<Boolean> original) {
         if ((Object) this instanceof Player player) {
-            FactionEntry faction = getFaction(player);
-            if (faction == null) return original.call(damageSource, f);
+            EmpyriumFaction faction = getFaction(player);
             float amount = modifyAmount(damageSource, ((Player) (Object) this), f, "hurt");
             original.call(damageSource, amount);
         }
@@ -57,44 +51,31 @@ public abstract class LivingEntityMixin {
         return original.call(damageSource, f);
     }
 
-
     @Unique
-    private boolean isWrongMixin(Ability ability, String mixin) {
-        FactionAbility workingAbility = EmpyriumMod.INSTANCE.getFactions().getWorkingAbility(ability);
-        if (workingAbility == null) return true;
-
-        if (workingAbility.getData().getMixin() == null) return true;
-        return !Objects.equals(workingAbility.getData().getMixin(), mixin);
+    private EmpyriumFaction getFaction(Player player) {
+        String factionIdentifier = player.getAttached(EmpyriumMod.INSTANCE.getFactions().getAttachments().getFACTION());
+        return factionIdentifier != null ? EmpyriumMod.INSTANCE.getFactions().getFaction(factionIdentifier) : null;
     }
 
     @Unique
-    private FactionEntry getFaction(Player player) {
-        String playerFactionName = player.getAttached(EmpyriumMod.INSTANCE.getFactions().getAttachments().getFACTION());
-
-        if (playerFactionName == null) return null;
-
-        return EmpyriumMod.INSTANCE.getStorage().getFaction(playerFactionName);
-
+    private boolean isWrongMixin(FactionAbility ability, String mixin) {
+        if (ability.getMixin() == null) return true;
+        return !Objects.equals(ability.getMixin(), mixin);
     }
 
     @Unique
     private float modifyAmount(DamageSource source, Player player, float amount, String mixin) {
-        FactionEntry faction = getFaction(player);
+        EmpyriumFaction faction = getFaction(player);
         if (faction == null) return amount;
         float newAmount = amount;
 
-        for (Ability ability : faction.getAbilities()) {
-            FactionAbility workingAbility = EmpyriumMod.INSTANCE.getFactions().getWorkingAbility(ability);
-
+        for (FactionAbility ability : faction.getAbilities()) {
             if (isWrongMixin(ability, mixin)) continue;
+            AttributeCalc calc = (AttributeCalc) ability.execute(player);
 
-            assert workingAbility != null;
-            AttributeCalc calc = (AttributeCalc) workingAbility.execute(player);
-
-            List<String> tags = workingAbility.getData().getDamageTags();
+            List<String> tags = ability.getDamageTags();
 
             boolean dontMultiply = false;
-
 
             if (tags != null) {
                 for (String damage : tags) {
@@ -122,16 +103,13 @@ public abstract class LivingEntityMixin {
     @Inject(method = "updateFallFlying", at = @At("HEAD"), cancellable = true)
     private void keepFallFlying(CallbackInfo ci) {
         if ((Object) this instanceof Player player) {
-            FactionEntry faction = getFaction(player);
+            EmpyriumFaction faction = getFaction(player);
 
             if (faction == null) return;
 
             boolean hasFallFlyingAbility = false;
 
-            for (Ability ability : faction.getAbilities()) {
-                FactionAbility workingAbility = EmpyriumMod.INSTANCE.getFactions().getWorkingAbility(ability);
-
-                if (workingAbility == null) continue;
+            for (FactionAbility ability : faction.getAbilities()) {
                 if (isWrongMixin(ability, "fallflying")) continue;
 
                 hasFallFlyingAbility = true;

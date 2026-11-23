@@ -1,5 +1,7 @@
 {
   "item.empyrium-mod.test": "Test",
   "key.empyrium-mod.abilities.1.activate": "Activate Ability 1",
-  "empyrium-mod.keybinds.category": "Empyrium"
+  "empyrium-mod.keybinds.category": "Empyrium",
+  "faction.empyrium-mod.human.name": "Human",
+  "faction.empyrium-mod.human.description": "Human"
 }

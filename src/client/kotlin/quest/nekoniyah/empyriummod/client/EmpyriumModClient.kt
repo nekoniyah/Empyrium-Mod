@@ -17,14 +17,6 @@ import quest.nekoniyah.empyriummod.network.OpenScreenPayload
 object EmpyriumModClient : ClientModInitializer {
     const val MOD_ID = "empyrium-mod"
 
-    fun <T : CustomPacketPayload> registerPayload(payload: EmpyriumPayloadHolder<T>) {
-        PayloadTypeRegistry.playC2S().register(payload.TYPE, payload.CODEC)
-    }
-
-    fun <T : CustomPacketPayload> registerPayloadS2C(payload: EmpyriumPayloadHolder<T>) {
-        PayloadTypeRegistry.playS2C().register(payload.TYPE, payload.CODEC)
-    }
-
     lateinit var keybinding: EmpyriumKeyMappings
 
     override fun onInitializeClient() {

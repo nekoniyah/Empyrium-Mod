@@ -6,14 +6,14 @@ import com.mojang.brigadier.context.CommandContext
 import net.minecraft.commands.CommandSourceStack
 import net.minecraft.commands.Commands
 
-abstract class SubcommandHolder(val name: String) {
+abstract class SubcommandHolder(val literal: String) {
 
-    abstract fun subcommands(): List<ArgumentBuilder<CommandSourceStack, *>>
+    open var subcommands: List<ArgumentBuilder<CommandSourceStack, *>> = listOf()
     abstract fun execute(ctx: CommandContext<CommandSourceStack>): Int
 
     fun command(): LiteralArgumentBuilder<CommandSourceStack?>? {
-        return Commands.literal(name).executes(::execute).also {
-            for (subcommand in subcommands()) it.then(subcommand)
+        return Commands.literal(literal).executes(::execute).also {
+            for (subcommand in subcommands) it.then(subcommand)
         }
     }
 }

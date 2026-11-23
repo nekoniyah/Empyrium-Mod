@@ -2,7 +2,6 @@ package quest.nekoniyah.empyriummod.difficulty
 
 import com.mojang.brigadier.arguments.StringArgumentType
 import com.mojang.brigadier.builder.ArgumentBuilder
-import com.mojang.brigadier.builder.RequiredArgumentBuilder
 import com.mojang.brigadier.context.CommandContext
 import net.fabricmc.fabric.api.entity.event.v1.ServerPlayerEvents
 import net.minecraft.ChatFormatting
@@ -24,15 +23,14 @@ class EmpyriumDifficulty(val attachments: DifficultyAttachments) : SubcommandHol
         return 0
     }
 
-    val selectDifficultyCommand: ArgumentBuilder<CommandSourceStack, *> = Commands.argument("selector", StringArgumentType.string()).then(
-        Commands.argument(
-            "name", StringArgumentType.string()
-        ).executes(::definePlayerDifficulty)
-    )
+    val selectDifficultyCommand: ArgumentBuilder<CommandSourceStack, *> =
+        Commands.argument("selector", StringArgumentType.string()).then(
+            Commands.argument(
+                "name", StringArgumentType.string()
+            ).executes(::definePlayerDifficulty)
+        )
 
-    override fun subcommands(): List<ArgumentBuilder<CommandSourceStack, *>> {
-        return listOf(selectDifficultyCommand)
-    }
+    override var subcommands = listOf(selectDifficultyCommand)
 
     fun definePlayerDifficulty(ctx: CommandContext<CommandSourceStack>): Int {
         val selector = StringArgumentType.getString(ctx, "selector")

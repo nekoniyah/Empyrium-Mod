@@ -1,5 +1,6 @@
 package quest.nekoniyah.empyriummod
 
+import com.llamalad7.mixinextras.MixinExtrasBootstrap
 import net.fabricmc.api.ModInitializer
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback
 import net.fabricmc.fabric.api.entity.event.v1.ServerLivingEntityEvents
@@ -19,15 +20,14 @@ import org.slf4j.LoggerFactory
 import quest.nekoniyah.empyriummod.commands.EmpyriumCommand
 import quest.nekoniyah.empyriummod.difficulty.DifficultyAttachments
 import quest.nekoniyah.empyriummod.difficulty.EmpyriumDifficulty
-import quest.nekoniyah.empyriummod.factions.EmpyriumFactions
-import quest.nekoniyah.empyriummod.factions.FactionAttachments
-import quest.nekoniyah.empyriummod.factions.powers.AbilityExecutionResult
-import quest.nekoniyah.empyriummod.factions.powers.PowerCooldowns
+import quest.nekoniyah.empyriummod.factions.utils.EmpyriumFactions
+import quest.nekoniyah.empyriummod.factions.utils.FactionAttachments
+import quest.nekoniyah.empyriummod.factions.utils.AbilityExecutionResult
+import quest.nekoniyah.empyriummod.factions.utils.PowerCooldowns
 import quest.nekoniyah.empyriummod.network.EmpyriumPayloadHolder
 import quest.nekoniyah.empyriummod.network.KeybindPayload
 import quest.nekoniyah.empyriummod.network.OpenScreenPayload
 import quest.nekoniyah.empyriummod.network.SelectFactionPayload
-import quest.nekoniyah.empyriummod.storage.StorageManager
 
 object EmpyriumMod : ModInitializer {
     const val MOD_ID: String = "empyrium-mod"
@@ -39,7 +39,6 @@ object EmpyriumMod : ModInitializer {
     val factions = EmpyriumFactions(FactionAttachments())
 
     var server: MinecraftServer? = null
-    lateinit var storage: StorageManager
 
     fun <T : CustomPacketPayload> registerPayload(payload: EmpyriumPayloadHolder<T>) {
         PayloadTypeRegistry.configurationS2C().register(payload.TYPE, payload.CODEC)
@@ -56,14 +55,14 @@ object EmpyriumMod : ModInitializer {
         // However, some things (like resources) may still be uninitialized.
         // Proceed with mild caution.
 
+        MixinExtrasBootstrap.init()
+
         registerPayload(OpenScreenPayload)
         registerPayloadC2S(OpenScreenPayload)
         registerPayloadC2S(SelectFactionPayload)
         registerPayload(SelectFactionPayload)
 
         registerPayloadC2S(KeybindPayload)
-
-        storage = StorageManager()
 
         ServerWorldEvents.LOAD.register { srv, _ ->
             if (server == null) {
@@ -76,7 +75,7 @@ object EmpyriumMod : ModInitializer {
         difficulty.register()
 
         CommandRegistrationCallback.EVENT.register { dispatcher, _, _ ->
-            dispatcher.register(EmpyriumCommand(listOf(factions, difficulty, storage)).command)
+            dispatcher.register(EmpyriumCommand(listOf(factions, difficulty)).command)
         }
 
         LOGGER.info("Hello Fabric world!")
@@ -89,14 +88,13 @@ object EmpyriumMod : ModInitializer {
             if (entity !is ServerPlayer) return@register true
 
             val factionName = entity.getAttached(factions.attachments.FACTION) ?: return@register true
-            val faction = storage.getFaction(factionName) ?: return@register true
+            val faction = factions.getFaction(factionName) ?: return@register true
 
             val featherfallAbility = faction.abilities.find { it.identifier == "featherfall" } ?: return@register true
 
-            val workingAbility = factions.getWorkingAbility(featherfallAbility) ?: return@register true
-            if (workingAbility.data.name != "featherfall") return@register true
+            if (featherfallAbility.identifier != "featherfall") return@register true
 
-            if(!source.`is`(DamageTypeTags.IS_FALL)) return@register true
+            if (!source.`is`(DamageTypeTags.IS_FALL)) return@register true
 
             return@register false
         }
@@ -106,11 +104,10 @@ object EmpyriumMod : ModInitializer {
 
             for (player in players) {
                 val factionName = player.getAttached(factions.attachments.FACTION) ?: continue
-                val faction = storage.getFaction(factionName) ?: continue
+                val faction = factions.getFaction(factionName) ?: continue
 
                 for (ability in faction.abilities) {
-                    val workingAbility = factions.getWorkingAbility(ability) ?: continue
-                    if (workingAbility.data.passive) continue
+                    if (ability.passive) continue
 
                     val powerCooldown =
                         PowerCooldowns.find { it.abilityIdentifier == ability.identifier && it.player.stringUUID == player.stringUUID }
@@ -134,13 +131,11 @@ object EmpyriumMod : ModInitializer {
             val player = context.player()
 
             val factionName = player.getAttached(factions.attachments.FACTION) ?: return@onClientMessage
-            val faction = storage.getFaction(factionName) ?: return@onClientMessage
+            val faction = factions.getFaction(factionName) ?: return@onClientMessage
 
             for (ability in faction.abilities) {
-                val workingAbility = factions.getWorkingAbility(ability) ?: continue
-
-                if (workingAbility.data.keybind != null && workingAbility.data.keybind == keybindId) {
-                    val res = workingAbility.checkAndExecute(player)
+                if (ability.keybind != null && ability.keybind == keybindId) {
+                    val res = ability.checkAndExecute(player)
 
                     val message = when (res) {
                         AbilityExecutionResult.DENIED -> "You are under cooldown!"

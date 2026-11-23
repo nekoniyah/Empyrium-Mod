@@ -4,24 +4,21 @@ import net.minecraft.network.protocol.game.ClientboundSetEntityMotionPacket
 import net.minecraft.server.level.ServerPlayer
 import net.minecraft.world.entity.player.Player
 import quest.nekoniyah.empyriummod.EmpyriumMod
-import quest.nekoniyah.empyriummod.storage.Ability
+import quest.nekoniyah.empyriummod.factions.utils.FactionAbility
 
 
 class LaunchPower : FactionAbility(
-    Ability(
-        "launch",
-        displayName = "${EmpyriumMod.MOD_ID}.powers.elytra_flight.name",
-        description = "${EmpyriumMod.MOD_ID}.powers.elytra_flight.description",
-        identifier = "launch",
-        keybind = 1,
-        passive = false,
-        cooldown = 0
-    )
+    displayName = "${EmpyriumMod.MOD_ID}.powers.elytra_flight.name",
+    description = "${EmpyriumMod.MOD_ID}.powers.elytra_flight.description",
+    identifier = "launch",
+    keybind = 1,
+    passive = false,
+    cooldown = 0
 ) {
     override fun execute(player: Player) {
         if (player is ServerPlayer) {
 
-            if(player.onGround()) return
+            if (player.onGround()) return
 
             val boost = 1.3
 

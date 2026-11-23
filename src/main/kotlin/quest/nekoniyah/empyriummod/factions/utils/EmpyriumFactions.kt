@@ -1,0 +1,109 @@
+package quest.nekoniyah.empyriummod.factions.utils
+
+import com.mojang.brigadier.arguments.StringArgumentType
+import com.mojang.brigadier.builder.ArgumentBuilder
+import com.mojang.brigadier.context.CommandContext
+import net.fabricmc.fabric.api.entity.event.v1.ServerPlayerEvents
+import net.minecraft.commands.CommandSourceStack
+import net.minecraft.commands.Commands
+import net.minecraft.network.chat.Component
+import net.minecraft.world.entity.player.Player
+import quest.nekoniyah.empyriummod.commands.SubcommandHolder
+import quest.nekoniyah.empyriummod.factions.AngelFaction
+import quest.nekoniyah.empyriummod.factions.FaunidFaction
+import quest.nekoniyah.empyriummod.factions.HumanFaction
+
+class EmpyriumFactions : SubcommandHolder {
+
+    val attachments: FactionAttachments
+    val factions: List<EmpyriumFaction>
+
+    constructor(attachments: FactionAttachments) : super("factions") {
+        this.attachments = attachments
+        this.factions = listOf(HumanFaction(), FaunidFaction(), AngelFaction())
+        this.subcommands = mutableListOf(selfJoinCommand).also { it -> it.addAll(factions.map { it.command }) }
+    }
+
+    fun applyAttributeAbilities(player: Player, oldFaction: EmpyriumFaction? = null) {
+        if (oldFaction != null) {
+            for (ability in oldFaction.abilities) {
+                if (ability.isAttribute != null && ability.isAttribute) {
+                    ability.unregister(player)
+                }
+            }
+        }
+
+        val factionName = player.getAttached(attachments.FACTION)
+
+        if (factionName != null) {
+            val faction = this.factions.find { it.identifier == factionName }
+
+            if (faction == null) return
+
+            for (ability in faction.abilities) {
+                if (ability.isAttribute != null && ability.isAttribute) {
+                    ability.checkAndExecute(
+                        player
+                    )
+                }
+            }
+
+        }
+    }
+
+    fun register() {
+        ServerPlayerEvents.COPY_FROM.register { oldPlayer, newPlayer, alive ->
+            if (!alive) {
+
+                val factionName = oldPlayer.getAttached(attachments.FACTION)
+                newPlayer.setAttached(attachments.FACTION, factionName)
+                applyAttributeAbilities(newPlayer)
+            }
+        }
+    }
+
+    val selfJoinCommand: ArgumentBuilder<CommandSourceStack, *> = Commands.literal("join").then(
+        Commands.argument(
+            "faction_name", StringArgumentType.string()
+        ).executes(::joinFaction)
+    )
+
+    fun getFaction(identifier: String): EmpyriumFaction? {
+        return factions.find { it.identifier == identifier }
+    }
+
+    fun joinFaction(player: Player, faction: String, oldFaction: EmpyriumFaction? = null) {
+        player.setAttached(attachments.FACTION, faction)
+        applyAttributeAbilities(player, oldFaction)
+    }
+
+    fun joinFaction(player: Player, faction: EmpyriumFaction, oldFaction: EmpyriumFaction? = null) {
+        player.setAttached(attachments.FACTION, faction.identifier)
+        applyAttributeAbilities(player, oldFaction)
+    }
+
+    fun joinFaction(ctx: CommandContext<CommandSourceStack>): Int {
+
+        val player = ctx.source.player ?: return 0
+
+        val oldFactionIdentifier = player.getAttached(attachments.FACTION)
+
+        val oldFaction = if (oldFactionIdentifier != null) getFaction(oldFactionIdentifier) else null
+
+        val factionIdentifier = StringArgumentType.getString(ctx, "faction_name")
+
+        val faction = getFaction(factionIdentifier)
+
+        if (faction == null) {
+            player.sendSystemMessage(Component.literal("$factionIdentifier is not an existing faction!"))
+            return 1
+        }
+
+        joinFaction(player, faction, oldFaction)
+        return 0
+    }
+
+    override fun execute(ctx: CommandContext<CommandSourceStack>): Int {
+        return 0
+    }
+}

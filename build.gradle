@@ -5,6 +5,7 @@ plugins {
     id 'maven-publish'
     id "org.jetbrains.kotlin.jvm" version "2.4.21"
     id 'org.jetbrains.kotlin.plugin.serialization' version '2.4.21'
+    id "org.jetbrains.kotlin.kapt" version '2.4.21'
 }
 
 repositories {
@@ -18,6 +19,7 @@ repositories {
 
     // since owo 0.13.0, jitpack is required for kdl4j
     maven { url 'https://jitpack.io' }
+    mavenCentral()
 }
 
 loom {
@@ -46,6 +48,9 @@ dependencies {
 
     modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_api_version}"
     include(modImplementation "net.fabricmc:fabric-language-kotlin:${project.fabric_kotlin_version}")
+    include(implementation(annotationProcessor("io.github.llamalad7:mixinextras-fabric:0.5.5")))
+    testImplementation 'org.jetbrains.kotlin:kotlin-test'
+
 }
 
 processResources {

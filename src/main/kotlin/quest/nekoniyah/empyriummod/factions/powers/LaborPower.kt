@@ -4,16 +4,13 @@ import net.minecraft.world.entity.ai.attributes.AttributeModifier
 import net.minecraft.world.entity.ai.attributes.Attributes
 import net.minecraft.world.entity.player.Player
 import quest.nekoniyah.empyriummod.EmpyriumMod
-import quest.nekoniyah.empyriummod.storage.Ability
+import quest.nekoniyah.empyriummod.factions.utils.FactionAbility
 
 class LaborPower : FactionAbility(
-    Ability(
-        "labor",
-        displayName = "${EmpyriumMod.MOD_ID}.powers.labor.name",
-        description = "${EmpyriumMod.MOD_ID}.powers.labor.description",
-        identifier = "labor",
-        isAttribute = true
-    )
+    displayName = "${EmpyriumMod.MOD_ID}.powers.labor.name",
+    description = "${EmpyriumMod.MOD_ID}.powers.labor.description",
+    identifier = "labor",
+    isAttribute = true
 ) {
     override fun execute(player: Player) {
         val attr = player.getAttribute(Attributes.BLOCK_BREAK_SPEED) ?: return

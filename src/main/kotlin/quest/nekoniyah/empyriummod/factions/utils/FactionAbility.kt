@@ -1,7 +1,6 @@
-package quest.nekoniyah.empyriummod.factions.powers
+package quest.nekoniyah.empyriummod.factions.utils
 
 import net.minecraft.world.entity.player.Player
-import quest.nekoniyah.empyriummod.storage.Ability
 
 enum class AbilityExecutionResult {
     SUCCESS, DENIED, UNKNOWN, INVALID
@@ -13,22 +12,32 @@ enum class AttributeCalcType {
 
 data class AttributeCalc(val type: AttributeCalcType, val value: Float)
 
-abstract class FactionAbility(val data: Ability) {
+abstract class FactionAbility(
+    val displayName: String? = null,
+    val description: String? = null,
+    val identifier: String,
+    val passive: Boolean = true,
+    val keybind: Int? = null,
+    val cooldown: Int? = null,
+    val isAttribute: Boolean? = false,
+    val mixin: String? = null,
+    val damageTags: List<String>? = null
+) {
     open fun execute(player: Player): Any? = null
 
     fun checkAndExecute(player: Player): AbilityExecutionResult {
-        if (data.isAttribute != null && data.isAttribute) {
+        if (isAttribute != null && isAttribute) {
             this.execute(player)
             return AbilityExecutionResult.SUCCESS
         }
 
-        if (data.mixin != null) return AbilityExecutionResult.UNKNOWN
+        if (mixin != null) return AbilityExecutionResult.UNKNOWN
 
         if (getCooldown(player) != null) return AbilityExecutionResult.DENIED
 
-        if (!data.passive) {
-            if (data.cooldown == null) return AbilityExecutionResult.INVALID
-            PowerCooldowns.add(PowerCooldown(player, data.cooldown * 20, data.identifier))
+        if (!passive) {
+            if (cooldown == null) return AbilityExecutionResult.INVALID
+            PowerCooldowns.add(PowerCooldown(player, cooldown * 20, identifier))
         }
 
         this.execute(player)
@@ -37,7 +46,7 @@ abstract class FactionAbility(val data: Ability) {
 
     fun getCooldown(player: Player): PowerCooldown? {
         return PowerCooldowns.find { cooldown ->
-            cooldown.player.stringUUID == player.stringUUID && cooldown.abilityIdentifier == data.identifier
+            cooldown.player.stringUUID == player.stringUUID && cooldown.abilityIdentifier == identifier
         }
     }
 

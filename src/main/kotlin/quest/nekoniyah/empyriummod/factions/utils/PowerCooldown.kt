@@ -1,4 +1,4 @@
-package quest.nekoniyah.empyriummod.factions.powers
+package quest.nekoniyah.empyriummod.factions.utils
 
 import net.minecraft.world.entity.player.Player
 
