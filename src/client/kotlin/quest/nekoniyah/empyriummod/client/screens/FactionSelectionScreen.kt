@@ -1,35 +1,37 @@
 package quest.nekoniyah.empyriummod.client.screens
 
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking
-import net.minecraft.client.gui.components.ImageWidget
 import quest.nekoniyah.empyriummod.client.EmpyriumModClient
 import quest.nekoniyah.empyriummod.client.util.ui.Button
+import quest.nekoniyah.empyriummod.client.util.ui.EmpyriumScreenLayout
+import quest.nekoniyah.empyriummod.client.util.ui.Image
 import quest.nekoniyah.empyriummod.network.SelectFactionPayload
 
-class FactionSelectionScreen : EmpyriumScreen("Faction Selection") {
-    override val identifier = "faction_selection"
-
+class FactionSelectionScreen : EmpyriumScreenLayout(16 * 4, 9 * 4, "Faction Selection", "faction_selection") {
     val BACKGROUND = EmpyriumModClient.id("textures/gui/screen/faction/background.png")
 
-    override fun init() {
-        super.init()
+    init {
+        val background = Image(this.rows, this.columns, this, BACKGROUND, 0)
 
-        val background = ImageWidget.texture(this.width, this.height, BACKGROUND, this.width, this.height)
+        // this.width - 120 - 50,
+
+        val buttonLayer = 2
 
         val angelSelectButton = Button(
-            this.width - 120 - 50, 30, "Angel", onPress = { _ -> selectFaction("angel") }).get()
+            this, "Angel", onPress = { _ -> selectFaction("angel") }, buttonLayer
+        )
 
-        val humanSelectButton = Button(
-            50, 120, "Human", onPress = { _ -> selectFaction("human") }).get()
+        // 50, 120,
+        val humanSelectButton = Button(this, "Human", onPress = { _ -> selectFaction("human") }, buttonLayer)
+
+        // this.width - 120 - 50, 210,
+        val faunidSelectButton = Button(this, "Faunid", onPress = { _ -> selectFaction("faunid") }, buttonLayer)
 
 
-        val faunidSelectButton = Button(
-            this.width - 120 - 50, 210, "Faunid", onPress = { _ -> selectFaction("faunid") }).get()
-
-        this.addRenderableOnly(background)
-        this.addRenderableWidget(angelSelectButton)
-        this.addRenderableWidget(humanSelectButton)
-        this.addRenderableWidget(faunidSelectButton)
+        setElement(2, 0, background)
+        setElement(49, 4, angelSelectButton)
+        setElement(11, 17, humanSelectButton)
+        setElement(49, 28, faunidSelectButton)
     }
 
     fun selectFaction(name: String) {
