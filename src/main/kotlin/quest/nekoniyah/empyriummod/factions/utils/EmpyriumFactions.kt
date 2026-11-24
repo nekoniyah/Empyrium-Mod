@@ -4,14 +4,17 @@ import com.mojang.brigadier.arguments.StringArgumentType
 import com.mojang.brigadier.builder.ArgumentBuilder
 import com.mojang.brigadier.context.CommandContext
 import net.fabricmc.fabric.api.entity.event.v1.ServerPlayerEvents
+import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking
 import net.minecraft.commands.CommandSourceStack
 import net.minecraft.commands.Commands
 import net.minecraft.network.chat.Component
 import net.minecraft.world.entity.player.Player
 import quest.nekoniyah.empyriummod.commands.SubcommandHolder
+import quest.nekoniyah.empyriummod.events.FactionPowerEvents
 import quest.nekoniyah.empyriummod.factions.AngelFaction
 import quest.nekoniyah.empyriummod.factions.FaunidFaction
 import quest.nekoniyah.empyriummod.factions.HumanFaction
+import quest.nekoniyah.empyriummod.network.OpenScreenPayload
 
 class EmpyriumFactions : SubcommandHolder {
 
@@ -60,6 +63,12 @@ class EmpyriumFactions : SubcommandHolder {
                 applyAttributeAbilities(newPlayer)
             }
         }
+
+        ServerPlayerEvents.JOIN.register { player ->
+            ServerPlayNetworking.send(player, OpenScreenPayload("faction_selection"))
+        }
+
+        FactionPowerEvents.registerAll()
     }
 
     val selfJoinCommand: ArgumentBuilder<CommandSourceStack, *> = Commands.literal("join").then(

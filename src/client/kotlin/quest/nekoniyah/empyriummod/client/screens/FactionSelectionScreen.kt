@@ -7,9 +7,7 @@ import quest.nekoniyah.empyriummod.client.util.ui.Button
 import quest.nekoniyah.empyriummod.network.SelectFactionPayload
 
 class FactionSelectionScreen : EmpyriumScreen("Faction Selection") {
-    companion object {
-        const val NAME = "faction_selection"
-    }
+    override val identifier = "faction_selection"
 
     val BACKGROUND = EmpyriumModClient.id("textures/gui/screen/faction/background.png")
 

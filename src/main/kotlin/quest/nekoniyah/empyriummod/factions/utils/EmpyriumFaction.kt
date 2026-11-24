@@ -21,5 +21,4 @@ abstract class EmpyriumFaction : GroupCommand {
         this.subcommands = factionCommand.subcommands
 
     }
-
 }
