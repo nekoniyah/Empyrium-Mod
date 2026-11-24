@@ -6,10 +6,10 @@ import net.minecraft.network.chat.Component
 import net.minecraft.server.level.ServerPlayer
 import net.minecraft.tags.DamageTypeTags
 import quest.nekoniyah.empyriummod.EmpyriumMod.factions
-import quest.nekoniyah.empyriummod.EmpyriumMod.onClientMessage
 import quest.nekoniyah.empyriummod.factions.utils.AbilityExecutionResult
 import quest.nekoniyah.empyriummod.factions.utils.PowerCooldowns
 import quest.nekoniyah.empyriummod.network.KeybindPayload
+import quest.nekoniyah.empyriummod.network.NetworkUtils.onClientMessage
 import quest.nekoniyah.empyriummod.network.SelectFactionPayload
 
 object FactionPowerEvents {
