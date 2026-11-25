@@ -1,11 +1,8 @@
 package quest.nekoniyah.empyriummod
 
-import com.llamalad7.mixinextras.MixinExtrasBootstrap
 import net.fabricmc.api.ModInitializer
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents
-import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking
-import net.minecraft.network.protocol.common.custom.CustomPacketPayload
 import net.minecraft.resources.ResourceLocation
 import net.minecraft.server.MinecraftServer
 import org.slf4j.Logger
@@ -13,6 +10,7 @@ import org.slf4j.LoggerFactory
 import quest.nekoniyah.empyriummod.commands.EmpyriumCommand
 import quest.nekoniyah.empyriummod.difficulty.DifficultyAttachments
 import quest.nekoniyah.empyriummod.difficulty.EmpyriumDifficulty
+import quest.nekoniyah.empyriummod.economy.CurrencyCommand
 import quest.nekoniyah.empyriummod.factions.utils.EmpyriumFactions
 import quest.nekoniyah.empyriummod.factions.utils.FactionAttachments
 import quest.nekoniyah.empyriummod.network.KeybindPayload
@@ -34,12 +32,6 @@ object EmpyriumMod : ModInitializer {
 
 
     override fun onInitialize() {
-        // This code runs as soon as Minecraft is in a mod-load-ready state.
-        // However, some things (like resources) may still be uninitialized.
-        // Proceed with mild caution.
-
-        MixinExtrasBootstrap.init()
-
         registerPayload(OpenScreenPayload)
         registerPayloadC2S(SelectFactionPayload)
 
@@ -55,7 +47,7 @@ object EmpyriumMod : ModInitializer {
         difficulty.register()
 
         CommandRegistrationCallback.EVENT.register { dispatcher, _, _ ->
-            dispatcher.register(EmpyriumCommand(listOf(factions, difficulty)).command)
+            dispatcher.register(EmpyriumCommand(listOf(factions, difficulty, CurrencyCommand())).command)
         }
 
 

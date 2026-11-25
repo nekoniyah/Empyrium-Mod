@@ -74,8 +74,13 @@ class EmpyriumFactions : SubcommandHolder {
     val selfJoinCommand: ArgumentBuilder<CommandSourceStack, *> = Commands.literal("join").then(
         Commands.argument(
             "faction_name", StringArgumentType.string()
-        ).executes(::joinFaction)
-    )
+        ).executes(::joinFaction).suggests { _, builder ->
+            return@suggests builder.also { b ->
+                for (faction in factions) {
+                    b.suggest(faction.identifier)
+                }
+            }.buildFuture()
+        })
 
     fun getFaction(identifier: String): EmpyriumFaction? {
         return factions.find { it.identifier == identifier }
@@ -105,14 +110,14 @@ class EmpyriumFactions : SubcommandHolder {
 
         if (faction == null) {
             player.sendSystemMessage(Component.literal("$factionIdentifier is not an existing faction!"))
-            return 1
+            return 0
         }
 
         joinFaction(player, faction, oldFaction)
-        return 0
+        return 1
     }
 
     override fun execute(ctx: CommandContext<CommandSourceStack>): Int {
-        return 0
+        return 1
     }
 }

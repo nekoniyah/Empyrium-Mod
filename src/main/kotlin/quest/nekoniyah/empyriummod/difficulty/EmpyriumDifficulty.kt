@@ -7,6 +7,7 @@ import net.fabricmc.fabric.api.entity.event.v1.ServerPlayerEvents
 import net.minecraft.ChatFormatting
 import net.minecraft.commands.CommandSourceStack
 import net.minecraft.commands.Commands
+import net.minecraft.commands.arguments.EntityArgument
 import net.minecraft.network.chat.*
 import net.minecraft.server.level.ServerPlayer
 import quest.nekoniyah.empyriummod.commands.SubcommandHolder
@@ -15,7 +16,7 @@ class EmpyriumDifficulty(val attachments: DifficultyAttachments) : SubcommandHol
     val dict = HashMap<String, String>()
 
     init {
-        dict["normal"] = "Base Vanilla Behavior. Inventory and XP is lot on death."
+        dict["normal"] = "Base Vanilla Behavior. Inventory and XP is lost on death."
         dict["safe"] = "Inventory and XP is preserved on death."
     }
 
@@ -24,39 +25,51 @@ class EmpyriumDifficulty(val attachments: DifficultyAttachments) : SubcommandHol
     }
 
     val selectDifficultyCommand: ArgumentBuilder<CommandSourceStack, *> =
-        Commands.argument("selector", StringArgumentType.string()).then(
-            Commands.argument(
-                "name", StringArgumentType.string()
-            ).executes(::definePlayerDifficulty)
+        Commands.argument("name", StringArgumentType.string()).executes(::defineSelfDifficulty).then(
+            Commands.argument("player", EntityArgument.player()).executes(::definePlayerDifficulty)
         )
+
 
     override var subcommands = listOf(selectDifficultyCommand)
 
+    fun defineSelfDifficulty(ctx: CommandContext<CommandSourceStack>): Int {
+        val name = StringArgumentType.getString(ctx, "name")
+
+        if (!dict.keys.contains(name)) {
+            ctx.source.sendSystemMessage(Component.literal("Difficulty $name doesn't exist."))
+            return 0
+        }
+
+
+        ctx.source.player?.setAttached(attachments.DIFFICULTY, name)
+        val playerName: String = ctx.source.player?.name?.string.toString()
+
+        ctx.source.sendSystemMessage(Component.literal("Set difficulty $name to $playerName."))
+        return 1
+    }
+
     fun definePlayerDifficulty(ctx: CommandContext<CommandSourceStack>): Int {
-        val selector = StringArgumentType.getString(ctx, "selector")
+        val player = EntityArgument.getPlayer(ctx, "player")
         val name = StringArgumentType.getString(ctx, "name")
 
         val playerName: String
 
-        if (selector == "@s") {
-            ctx.source.player?.setAttached(attachments.DIFFICULTY, name)
-            playerName = ctx.source.player?.name?.string.toString()
-        } else {
-            val server = ctx.source.server
-            val player = server.playerList.players.find { it.name.string == selector }
-
-            if (player == null) {
-                ctx.source.sendSystemMessage(Component.literal("$selector is not online!"))
-                return 1
+        if (ctx.source.hasPermission(4)) {
+            if (!dict.keys.contains(name)) {
+                ctx.source.sendSystemMessage(Component.literal("Difficulty $name does not exist."))
+                return 0
             }
 
             player.setAttached(attachments.DIFFICULTY, name)
             playerName = player.name.string
+        } else {
+            ctx.source.sendSystemMessage(Component.literal("You don't have the permission to execute this command."))
+            return 0
         }
 
         ctx.source.sendSystemMessage(Component.literal("Set difficulty $name to $playerName."))
 
-        return 0
+        return 1
     }
 
     fun button(text: String, difficulty: String): MutableComponent {
@@ -65,7 +78,7 @@ class EmpyriumDifficulty(val attachments: DifficultyAttachments) : SubcommandHol
             .append(Component.literal("]").withStyle(ChatFormatting.RED)).withStyle(
                 Style.EMPTY.withClickEvent(
                     ClickEvent(
-                        ClickEvent.Action.RUN_COMMAND, "/empyrium difficulty \"@s\" " + difficulty
+                        ClickEvent.Action.RUN_COMMAND, "/empyrium difficulty " + difficulty
                     )
                 ).withHoverEvent(HoverEvent(HoverEvent.Action.SHOW_TEXT, Component.literal(dict[difficulty]!!)))
             )
