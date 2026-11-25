@@ -50,6 +50,10 @@ dependencies {
     testImplementation 'org.jetbrains.kotlin:kotlin-test'
 
     modImplementation "io.wispforest:owo-lib:${project.owo_version}"
+
+    implementation include("org.jetbrains.exposed:exposed-core:1.6.1")
+    implementation include("org.jetbrains.exposed:exposed-jdbc:1.6.1")
+    implementation include("org.xerial:sqlite-jdbc:3.50.2.0")
 }
 
 processResources {

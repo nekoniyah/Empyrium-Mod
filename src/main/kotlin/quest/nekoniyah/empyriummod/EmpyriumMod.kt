@@ -2,15 +2,20 @@ package quest.nekoniyah.empyriummod
 
 import net.fabricmc.api.ModInitializer
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback
+import net.fabricmc.fabric.api.entity.event.v1.ServerPlayerEvents
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents
 import net.minecraft.resources.ResourceLocation
 import net.minecraft.server.MinecraftServer
+import net.minecraft.world.item.ItemStack
+import net.minecraft.world.item.Items
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import quest.nekoniyah.empyriummod.commands.EmpyriumCommand
+import quest.nekoniyah.empyriummod.database.EmpyriumDatabase
 import quest.nekoniyah.empyriummod.difficulty.DifficultyAttachments
 import quest.nekoniyah.empyriummod.difficulty.EmpyriumDifficulty
 import quest.nekoniyah.empyriummod.economy.CurrencyCommand
+import quest.nekoniyah.empyriummod.economy.currencies.CurrencyRegistry
 import quest.nekoniyah.empyriummod.factions.utils.EmpyriumFactions
 import quest.nekoniyah.empyriummod.factions.utils.FactionAttachments
 import quest.nekoniyah.empyriummod.network.KeybindPayload
@@ -37,7 +42,6 @@ object EmpyriumMod : ModInitializer {
 
         registerPayloadC2S(KeybindPayload)
 
-
         ServerLifecycleEvents.SERVER_STARTED.register { srv ->
             server = srv
             factions.register()
@@ -48,6 +52,12 @@ object EmpyriumMod : ModInitializer {
 
         CommandRegistrationCallback.EVENT.register { dispatcher, _, _ ->
             dispatcher.register(EmpyriumCommand(listOf(factions, difficulty, CurrencyCommand())).command)
+        }
+
+        EmpyriumDatabase.init()
+
+        ServerPlayerEvents.JOIN.register { player ->
+            EmpyriumDatabase.sellItem(player, ItemStack(Items.ACACIA_LOG), CurrencyRegistry[0], 10)
         }
 
 
