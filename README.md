@@ -12,7 +12,7 @@
 - (Future) addons to add more factions
 
 Economy :
-- Multi-currency system (configurable item-icon, name, etc)
+- Multi-currency system (item-icon, name, etc)
 - Admin Shop + Player Shop
 
 Difficulty System (death)
@@ -22,6 +22,7 @@ Difficulty System (death)
 ## What have been done
 - Difficulty System: 100%
 - Factions & Powers: 90% (no capitals/no config)
+- Economy: 50% (3 Currencies created: Players can see their balance in the HUD. Also commands for admins to give/take/set balance)
 
 ## Setup
 
