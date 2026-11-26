@@ -1,11 +1,16 @@
 package quest.nekoniyah.empyriummod.commands
 
 import com.mojang.brigadier.builder.LiteralArgumentBuilder
+import com.mojang.brigadier.context.CommandContext
 import net.minecraft.commands.CommandSourceStack
 
-class EmpyriumCommand(subcommands: List<SubcommandHolder>) {
+open class EmpyriumCommand(subcommands: List<SubcommandHolder>, val identifier: String? = "empyrium") {
     var command: LiteralArgumentBuilder<CommandSourceStack?>? =
-        LiteralArgumentBuilder.literal<CommandSourceStack>("empyrium").also {
+        LiteralArgumentBuilder.literal<CommandSourceStack>(identifier).executes(::execute).also {
             subcommands.forEach { sc -> it.then(sc.command()) }
         }
+
+    open fun execute(ctx: CommandContext<CommandSourceStack>):Int {
+        return 1
+    }
 }

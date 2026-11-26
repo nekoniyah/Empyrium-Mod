@@ -2,40 +2,57 @@ package quest.nekoniyah.empyriummod.client
 
 import net.fabricmc.api.ClientModInitializer
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents
+import net.minecraft.client.Minecraft
 import net.minecraft.resources.ResourceLocation
+import quest.nekoniyah.empyriummod.EmpyriumMod
 import quest.nekoniyah.empyriummod.client.events.KeybindEvents
-import quest.nekoniyah.empyriummod.client.events.NetworkEvents
 import quest.nekoniyah.empyriummod.client.keymappings.EmpyriumKeyMappings
 import quest.nekoniyah.empyriummod.client.overlays.EmpyriumOverlay
 import quest.nekoniyah.empyriummod.client.screens.EmpyriumScreen
 import quest.nekoniyah.empyriummod.client.screens.FactionSelectionScreen
+import quest.nekoniyah.empyriummod.client.screens.PlayerShopScreen
 import quest.nekoniyah.empyriummod.client.util.ui.CurrencyHud
+import quest.nekoniyah.empyriummod.economy.PlayerShopItem
 import quest.nekoniyah.empyriummod.economy.currencies.CurrencyRegistry
+import quest.nekoniyah.empyriummod.network.packets.OpenScreenPacket
+import quest.nekoniyah.empyriummod.network.packets.PlayerShopResponsePacket
 
 object EmpyriumModClient : ClientModInitializer {
     const val MOD_ID = "empyrium-mod"
 
     lateinit var keybinding: EmpyriumKeyMappings
 
-    val screenRegistry: ArrayList<EmpyriumScreen> = arrayListOf(FactionSelectionScreen())
+    val screenRegistry: ArrayList<EmpyriumScreen> = arrayListOf(FactionSelectionScreen(), PlayerShopScreen())
+
+
+    val cachedPlayerShopItems: HashMap<Int, List<PlayerShopItem>> = HashMap()
+
+    var playerShopPage = 0
 
     override fun onInitializeClient() {
         // This entrypoint is suitable for setting up client-specific logic, such as rendering.
 
-
         keybinding = EmpyriumKeyMappings()
 
-        NetworkEvents.register()
+        EmpyriumMod.NET_CHANNEL.registerClientbound(OpenScreenPacket::class.java) { packet, access ->
+            val screen = getScreen(packet.screenName) ?: return@registerClientbound
+            Minecraft.getInstance().setScreen(screen)
+        }
+
         KeybindEvents.register()
 
         CurrencyRegistry.forEach { c ->
-
             EmpyriumOverlay.addCurrencyData(
                 CurrencyHud(
                     c.identifier, id("textures/item/${c.identifier}.png"), 0
                 )
             )
         }
+
+        EmpyriumMod.NET_CHANNEL.registerClientbound(PlayerShopResponsePacket::class.java) { packet, access ->
+            cachedPlayerShopItems[packet.page] = packet.items
+        }
+
 
         ClientTickEvents.END_CLIENT_TICK.register { minecraft ->
             val player = minecraft.player ?: return@register

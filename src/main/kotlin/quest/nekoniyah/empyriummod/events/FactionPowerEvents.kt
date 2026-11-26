@@ -5,25 +5,20 @@ import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents
 import net.minecraft.network.chat.Component
 import net.minecraft.server.level.ServerPlayer
 import net.minecraft.tags.DamageTypeTags
+import quest.nekoniyah.empyriummod.EmpyriumMod.NET_CHANNEL
 import quest.nekoniyah.empyriummod.EmpyriumMod.factions
 import quest.nekoniyah.empyriummod.factions.utils.AbilityExecutionResult
 import quest.nekoniyah.empyriummod.factions.utils.PowerCooldowns
-import quest.nekoniyah.empyriummod.network.KeybindPayload
-import quest.nekoniyah.empyriummod.network.NetworkUtils.onClientMessage
-import quest.nekoniyah.empyriummod.network.SelectFactionPayload
+import quest.nekoniyah.empyriummod.network.packets.KeybindPacket
 
 object FactionPowerEvents {
     fun registerNetworkEvents() {
-        onClientMessage(SelectFactionPayload.TYPE) { payload, context ->
-            factions.joinFaction(context.player(), payload.name)
-        }
+        NET_CHANNEL.registerServerbound(KeybindPacket::class.java) { packet, access ->
+            val keybindId = packet.name
+            val player = access.player()
 
-        onClientMessage(KeybindPayload.TYPE) { payload, context ->
-            val keybindId = payload.name
-            val player = context.player()
-
-            val factionName = player.getAttached(factions.attachments.FACTION) ?: return@onClientMessage
-            val faction = factions.getFaction(factionName) ?: return@onClientMessage
+            val factionName = player.getAttached(factions.attachments.FACTION) ?: return@registerServerbound
+            val faction = factions.getFaction(factionName) ?: return@registerServerbound
 
             for (ability in faction.abilities) {
                 if (ability.keybind != null && ability.keybind == keybindId) {

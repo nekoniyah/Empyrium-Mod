@@ -4,17 +4,19 @@ import com.mojang.brigadier.arguments.StringArgumentType
 import com.mojang.brigadier.builder.ArgumentBuilder
 import com.mojang.brigadier.context.CommandContext
 import net.fabricmc.fabric.api.entity.event.v1.ServerPlayerEvents
-import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking
 import net.minecraft.commands.CommandSourceStack
 import net.minecraft.commands.Commands
 import net.minecraft.network.chat.Component
 import net.minecraft.world.entity.player.Player
+import quest.nekoniyah.empyriummod.EmpyriumMod
+import quest.nekoniyah.empyriummod.EmpyriumMod.NET_CHANNEL
 import quest.nekoniyah.empyriummod.commands.SubcommandHolder
 import quest.nekoniyah.empyriummod.events.FactionPowerEvents
 import quest.nekoniyah.empyriummod.factions.AngelFaction
 import quest.nekoniyah.empyriummod.factions.FaunidFaction
 import quest.nekoniyah.empyriummod.factions.HumanFaction
-import quest.nekoniyah.empyriummod.network.OpenScreenPayload
+import quest.nekoniyah.empyriummod.network.packets.OpenScreenPacket
+import quest.nekoniyah.empyriummod.network.packets.SelectFactionPacket
 
 class EmpyriumFactions : SubcommandHolder {
 
@@ -65,10 +67,17 @@ class EmpyriumFactions : SubcommandHolder {
         }
 
         ServerPlayerEvents.JOIN.register { player ->
-            ServerPlayNetworking.send(player, OpenScreenPayload("faction_selection"))
+            EmpyriumMod.NET_CHANNEL.serverHandle(player).send(OpenScreenPacket("faction_selection"))
         }
 
         FactionPowerEvents.registerAll()
+
+        NET_CHANNEL.registerServerbound(SelectFactionPacket::class.java) { packet, access ->
+            val player = access.player
+            val oldFactionName = player.getAttached(EmpyriumMod.factions.attachments.FACTION)
+            val faction = if (oldFactionName != null) EmpyriumMod.factions.getFaction(oldFactionName) else null
+            EmpyriumMod.factions.joinFaction(player, packet.factionName, faction)
+        }
     }
 
     val selfJoinCommand: ArgumentBuilder<CommandSourceStack, *> = Commands.literal("join").then(

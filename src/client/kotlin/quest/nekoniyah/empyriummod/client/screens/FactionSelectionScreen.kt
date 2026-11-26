@@ -4,10 +4,10 @@ import io.wispforest.owo.ui.component.Components
 import io.wispforest.owo.ui.container.Containers
 import io.wispforest.owo.ui.container.FlowLayout
 import io.wispforest.owo.ui.core.*
-import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking
 import net.minecraft.network.chat.Component
+import quest.nekoniyah.empyriummod.EmpyriumMod
 import quest.nekoniyah.empyriummod.client.EmpyriumModClient
-import quest.nekoniyah.empyriummod.network.SelectFactionPayload
+import quest.nekoniyah.empyriummod.network.packets.SelectFactionPacket
 
 class FactionSelectionScreen : EmpyriumScreen("Faction Selection") {
     val BACKGROUND = EmpyriumModClient.id("textures/gui/screen/faction/background.png")
@@ -15,7 +15,7 @@ class FactionSelectionScreen : EmpyriumScreen("Faction Selection") {
     override val identifier = "faction_selection"
 
     fun selectFaction(name: String) {
-        ClientPlayNetworking.send(SelectFactionPayload(name))
+        EmpyriumMod.NET_CHANNEL.clientHandle().send(SelectFactionPacket(name))
         onClose()
     }
 
@@ -28,8 +28,10 @@ class FactionSelectionScreen : EmpyriumScreen("Faction Selection") {
             .horizontalAlignment(HorizontalAlignment.CENTER).sizing(Sizing.fill())
 
         rootComponent.child(
-            Components.texture(BACKGROUND, 0, 0, this.width, this.height, this.width, this.height).sizing(Sizing.fill()).positioning(
-                Positioning.relative(0, 0))
+            Components.texture(BACKGROUND, 0, 0, this.width, this.height, this.width, this.height).sizing(Sizing.fill())
+                .positioning(
+                    Positioning.relative(0, 0)
+                )
         )
 
         rootComponent.child(
