@@ -88,9 +88,9 @@ object EmpyriumMod : ModInitializer {
         difficulty.register()
 
         CommandRegistrationCallback.EVENT.register { dispatcher, _, _ ->
-            dispatcher.register(EmpyriumCommand(listOf(factions, difficulty, CurrencyCommand())).command)
-            dispatcher.register(ShopCommand().command)
-            dispatcher.register(PlayerFactionCommand().command)
+            dispatcher.register(EmpyriumCommand(listOf(factions, difficulty, CurrencyCommand())).command())
+            dispatcher.register(ShopCommand().command())
+            dispatcher.register(PlayerFactionCommand().command())
         }
 
         ServerPlayerEvents.JOIN.register { player ->
