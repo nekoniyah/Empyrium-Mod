@@ -108,7 +108,6 @@ object EmpyriumMod : ModInitializer {
             }
         }
 
-        EmpyriumDatabase.init()
         PlayerShopEvents.register()
 
         LOGGER.info("Hello Fabric world!")
