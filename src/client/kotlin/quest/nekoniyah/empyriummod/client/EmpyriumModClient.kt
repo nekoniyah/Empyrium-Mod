@@ -11,22 +11,23 @@ import quest.nekoniyah.empyriummod.client.overlays.EmpyriumOverlay
 import quest.nekoniyah.empyriummod.client.screens.EmpyriumScreen
 import quest.nekoniyah.empyriummod.client.screens.FactionSelectionScreen
 import quest.nekoniyah.empyriummod.client.screens.PlayerShopScreen
+import quest.nekoniyah.empyriummod.client.screens.RecipeCodexScreen
 import quest.nekoniyah.empyriummod.client.screens.ShopResult
 import quest.nekoniyah.empyriummod.client.util.ui.CurrencyHud
 import quest.nekoniyah.empyriummod.economy.PlayerShopItem
 import quest.nekoniyah.empyriummod.economy.currencies.CurrencyRegistry
-import quest.nekoniyah.empyriummod.network.packets.OpenScreenPacket
-import quest.nekoniyah.empyriummod.network.packets.PlayerShopMessagePacket
-import quest.nekoniyah.empyriummod.network.packets.PlayerShopResponsePacket
+import quest.nekoniyah.empyriummod.network.packets.*
 
 object EmpyriumModClient : ClientModInitializer {
     const val MOD_ID = "empyrium-mod"
 
     lateinit var keybinding: EmpyriumKeyMappings
 
-    val screenRegistry: ArrayList<EmpyriumScreen> = arrayListOf(FactionSelectionScreen(), PlayerShopScreen())
+    val screenRegistry: ArrayList<EmpyriumScreen> = arrayListOf(FactionSelectionScreen(), PlayerShopScreen(),
+        RecipeCodexScreen())
     var cachedPlayerShopItems: List<PlayerShopItem> = listOf()
-    var playerShopMessage: ShopResult? = null
+
+    var codex: List<RecipeCodexPacketEntry> = listOf()
 
     override fun onInitializeClient() {
         // This entrypoint is suitable for setting up client-specific logic, such as rendering.
@@ -54,7 +55,12 @@ object EmpyriumModClient : ClientModInitializer {
         }
 
         EmpyriumMod.NET_CHANNEL.registerClientbound(PlayerShopMessagePacket::class.java) { packet, _ ->
-            playerShopMessage = ShopResult(packet.success, packet.message)
+            (Minecraft.getInstance().screen as? PlayerShopScreen)
+                ?.onShopResult(ShopResult(packet.success, packet.message))
+        }
+
+        EmpyriumMod.NET_CHANNEL.registerClientbound(RecipeCodexResponsePacket::class.java) { packet, _ ->
+            codex = packet.items
         }
 
         ClientTickEvents.END_CLIENT_TICK.register { minecraft ->

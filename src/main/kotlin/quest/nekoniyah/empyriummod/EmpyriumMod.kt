@@ -50,7 +50,7 @@ object EmpyriumMod : ModInitializer {
         ServerLifecycleEvents.SERVER_STARTED.register { srv ->
             server = srv
 
-            val dbDir = srv.getWorldPath(LevelResource.ROOT).resolve(MOD_ID)
+            val dbDir = srv.serverDirectory.resolve("data").resolve(MOD_ID)
             EmpyriumDatabase.init(dbDir)
             
             if (!RecipeCodexConfig.checkEmptiness()) return@register

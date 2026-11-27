@@ -67,7 +67,7 @@ class EmpyriumFactions : SubcommandHolder {
         }
 
         ServerPlayerEvents.JOIN.register { player ->
-            EmpyriumMod.NET_CHANNEL.serverHandle(player).send(OpenScreenPacket("faction_selection"))
+            NET_CHANNEL.serverHandle(player).send(OpenScreenPacket("faction_selection"))
         }
 
         FactionPowerEvents.registerAll()

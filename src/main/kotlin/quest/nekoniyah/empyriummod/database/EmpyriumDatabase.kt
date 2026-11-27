@@ -3,6 +3,8 @@ package quest.nekoniyah.empyriummod.database
 import com.google.gson.JsonParser
 import com.mojang.serialization.JsonOps
 import net.minecraft.core.registries.BuiltInRegistries
+import net.minecraft.server.MinecraftServer
+import net.minecraft.server.level.ServerPlayer
 import net.minecraft.world.entity.player.Player
 import net.minecraft.world.item.ItemStack
 import org.jetbrains.exposed.v1.core.ResultRow
@@ -12,18 +14,21 @@ import org.jetbrains.exposed.v1.jdbc.*
 import org.jetbrains.exposed.v1.jdbc.transactions.TransactionManager
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import quest.nekoniyah.empyriummod.EmpyriumMod
+import quest.nekoniyah.empyriummod.EmpyriumMod.NET_CHANNEL
 import quest.nekoniyah.empyriummod.config.RecipeCodexConfig
 import quest.nekoniyah.empyriummod.economy.PlayerShopItem
 import quest.nekoniyah.empyriummod.economy.currencies.Currency
-import java.sql.Connection
+import quest.nekoniyah.empyriummod.network.packets.RecipeCodexPacketEntry
+import quest.nekoniyah.empyriummod.network.packets.RecipeCodexResponsePacket
 import java.nio.file.Files
 import java.nio.file.Path
+import java.sql.Connection
 
 object EmpyriumDatabase {
     var db: Database? = null
     fun init(dbDir: Path) {
 
-        // Créer le répertoire dans world/ 
+        // Créer le répertoire dans data/
         Files.createDirectories(dbDir)
 
         // Récupère le path de la db
@@ -110,7 +115,6 @@ object EmpyriumDatabase {
         }
     }
 
-
     fun checkRecipeCodexForFreeCraft(player: Player, item: ItemStack): Boolean {
         val itemLocation = BuiltInRegistries.ITEM.getKey(item.item)
 
@@ -123,7 +127,7 @@ object EmpyriumDatabase {
                 .firstOrNull() ?: return@transaction false
 
 
-            if (existingRec[PlayerCraftsTable.freeCount] >= itemCraftInfo.freeCount) {
+            if (existingRec[PlayerCraftsTable.freeCount] > itemCraftInfo.freeCount) {
                 return@transaction transaction(db) {
                     PlayerCraftsTable.deleteWhere { (PlayerCraftsTable.playerUuid eq player.stringUUID) and (PlayerCraftsTable.itemId eq itemLocation.toString()) }
                     return@transaction false
@@ -175,6 +179,8 @@ object EmpyriumDatabase {
                 }
             }
         }
+
+        NET_CHANNEL.serverHandle(player).send(RecipeCodexResponsePacket(getFullCodex(EmpyriumMod.server!!, player.stringUUID)))
     }
 
     fun getItems(): List<PlayerShopItem> {
@@ -225,5 +231,32 @@ object EmpyriumDatabase {
         return runCatching {
             ItemStack.CODEC.parse(JsonOps.INSTANCE, JsonParser.parseString(string)).result().orElse(null)
         }.getOrNull()
+    }
+
+    fun getAllCodexItems(uuid: String): List<RecipeCodexPacketEntry> {
+        return transaction(db) {
+            return@transaction PlayerCraftsTable.selectAll().where {
+                (PlayerCraftsTable.playerUuid eq uuid)
+            }.map { resultRow ->
+                val conf = RecipeCodexConfig.getAll()[resultRow[PlayerCraftsTable.itemId]]
+                RecipeCodexPacketEntry(
+                    resultRow[PlayerCraftsTable.itemId],
+                    conf?.goal ?: 0,
+                    resultRow[PlayerCraftsTable.count],
+                    conf?.freeCount ?: 0,
+                    resultRow[PlayerCraftsTable.freeCount]
+                )
+            }
+        }
+    }
+
+    fun getFullCodex(server: MinecraftServer, uuid: String): List<RecipeCodexPacketEntry> {
+        val config = RecipeCodexConfig.getAll()
+
+        return RecipeCodexBuilder.build(server, getAllCodexItems(uuid)) { key ->
+            RecipeCodexPacketEntry(
+                key, config[key]?.goal ?: 0, 0, config[key]?.freeCount ?: 0, 0
+            )
+        }
     }
 }

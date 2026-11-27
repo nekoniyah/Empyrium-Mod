@@ -8,6 +8,7 @@ class RecipeCodexPower : FactionAbility(
     displayName = "${EmpyriumMod.MOD_ID}.powers.recipe_codex.name",
     description = "${EmpyriumMod.MOD_ID}.powers.recipe_codex.description",
     identifier = "recipe_codex_power",
+    mixin = "onCraft"
 
     ) {
     override fun execute(player: Player) {
