@@ -4,7 +4,8 @@ import com.mojang.brigadier.builder.LiteralArgumentBuilder
 import com.mojang.brigadier.context.CommandContext
 import net.minecraft.commands.CommandSourceStack
 
-open class EmpyriumCommand(subcommands: List<SubcommandHolder>, val identifier: String? = "empyrium") {
+open class EmpyriumCommand(open val subcommands: List<SubcommandHolder>, val identifier: String? = "empyrium") {
+
     var command: LiteralArgumentBuilder<CommandSourceStack?>? =
         LiteralArgumentBuilder.literal<CommandSourceStack>(identifier).executes(::execute).also {
             subcommands.forEach { sc -> it.then(sc.command()) }

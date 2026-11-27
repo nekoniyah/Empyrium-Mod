@@ -24,6 +24,7 @@ import quest.nekoniyah.empyriummod.economy.ShopCommand
 import quest.nekoniyah.empyriummod.economy.currencies.CurrencyRegistry
 import quest.nekoniyah.empyriummod.factions.utils.EmpyriumFactions
 import quest.nekoniyah.empyriummod.factions.utils.FactionAttachments
+import quest.nekoniyah.empyriummod.factions.utils.PlayerFactionCommand
 import quest.nekoniyah.empyriummod.network.packets.RecipeCodexResponsePacket
 
 object EmpyriumMod : ModInitializer {
@@ -89,6 +90,7 @@ object EmpyriumMod : ModInitializer {
         CommandRegistrationCallback.EVENT.register { dispatcher, _, _ ->
             dispatcher.register(EmpyriumCommand(listOf(factions, difficulty, CurrencyCommand())).command)
             dispatcher.register(ShopCommand().command)
+            dispatcher.register(PlayerFactionCommand().command)
         }
 
         ServerPlayerEvents.JOIN.register { player ->

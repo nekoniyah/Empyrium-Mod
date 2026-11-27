@@ -23,7 +23,7 @@ class EmpyriumFactions : SubcommandHolder {
     val attachments: FactionAttachments
     val factions: List<EmpyriumFaction>
 
-    constructor(attachments: FactionAttachments) : super("factions") {
+    constructor(attachments: FactionAttachments) : super("factions", true) {
         this.attachments = attachments
         this.factions = listOf(HumanFaction(), FaunidFaction(), AngelFaction())
         this.subcommands = mutableListOf(selfJoinCommand).also { it -> it.addAll(factions.map { it.command }) }

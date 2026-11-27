@@ -1,6 +1,7 @@
 {
   "item.empyrium-mod.test": "Test",
   "key.empyrium-mod.abilities.1.activate": "Activate Ability 1",
+  "key.empyrium-mod.screens.recipe_codex": "Open the Recipe Codex (Humans)",
   "empyrium-mod.keybinds.category": "Empyrium",
   "faction.empyrium-mod.human.name": "Human",
   "faction.empyrium-mod.human.description": "Human"
