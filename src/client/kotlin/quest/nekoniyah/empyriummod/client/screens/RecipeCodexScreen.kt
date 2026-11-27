@@ -25,7 +25,11 @@ class RecipeCodexScreen : EmpyriumScreen("Recipe Codex") {
     private var summary: FlowLayout? = null
     private var list: FlowLayout? = null
 
+    private var entries: List<RecipeCodexPacketEntry> = listOf()
+
     override fun build(rootComponent: FlowLayout) {
+        entries = EmpyriumModClient.codex
+
         rootComponent.surface(Surface.flat(0x77000000)).verticalAlignment(VerticalAlignment.CENTER)
             .horizontalAlignment(HorizontalAlignment.CENTER).sizing(Sizing.fill())
 
@@ -67,16 +71,16 @@ class RecipeCodexScreen : EmpyriumScreen("Recipe Codex") {
     }
 
     fun refresh() {
+        entries = EmpyriumModClient.codex
+
         val summary = summary ?: return
         val list = list ?: return
         val pager = pager ?: return
-        val entries = EmpyriumModClient.codex
 
-        val tracked = entries.filter { it.max > 0 }
-        val maxed = tracked.count { isMax(it) }
+        val maxed = entries.count { isMax(it) }
         summary.clearChildren()
-        summary.child(label("$maxed / ${tracked.size} recipes maxed", GRAY))
-        summary.child(progressBar(WIDTH - 20, maxed, tracked.size, maxed == tracked.size && maxed > 0))
+        summary.child(label("$maxed / ${entries.size} recipes maxed", GRAY))
+        summary.child(progressBar(WIDTH - 20, maxed, entries.size, maxed == entries.size && maxed > 0))
 
         val visible = entries.filter { matchesSearch(it) }
             .sortedWith(compareBy<RecipeCodexPacketEntry> { it.max <= 0 }.thenBy { isMax(it) }
@@ -111,7 +115,8 @@ class RecipeCodexScreen : EmpyriumScreen("Recipe Codex") {
 
     private fun matchesSearch(entry: RecipeCodexPacketEntry): Boolean {
         val query = search.trim()
-        return entry.itemKey.contains(query, ignoreCase = true) || itemFor(entry.itemKey)?.hoverName?.string?.contains(
+
+        return query == "" || entry.itemKey.contains(query, ignoreCase = true) || itemFor(entry.itemKey)?.hoverName?.string?.contains(
             query, ignoreCase = true
         ) == true
     }
@@ -213,6 +218,14 @@ class RecipeCodexScreen : EmpyriumScreen("Recipe Codex") {
     }
 
     override fun isPauseScreen(): Boolean = false
+
+
+    override fun init() {
+        super.init()
+        search = ""
+        page = 0
+        refresh()
+    }
 
     private companion object {
         const val WIDTH = 240

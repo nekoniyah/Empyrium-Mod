@@ -61,6 +61,7 @@ object EmpyriumModClient : ClientModInitializer {
 
         EmpyriumMod.NET_CHANNEL.registerClientbound(RecipeCodexResponsePacket::class.java) { packet, _ ->
             codex = packet.items
+            (Minecraft.getInstance().screen as? RecipeCodexScreen)?.refresh()
         }
 
         ClientTickEvents.END_CLIENT_TICK.register { minecraft ->
@@ -86,6 +87,8 @@ object EmpyriumModClient : ClientModInitializer {
     fun getScreen(identifier: String): EmpyriumScreen? {
         return screenRegistry.find { it.identifier == identifier }
     }
+
+
 
 
     fun id(path: String): ResourceLocation = ResourceLocation.fromNamespaceAndPath(MOD_ID, path)

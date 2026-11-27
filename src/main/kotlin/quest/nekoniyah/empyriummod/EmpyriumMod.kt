@@ -60,7 +60,7 @@ object EmpyriumMod : ModInitializer {
 
                     val rarity = itemStack.rarity
 
-                    val goal = when (rarity) {
+                    val max = when (rarity) {
                         Rarity.COMMON -> 100
                         Rarity.UNCOMMON -> 110
                         Rarity.RARE -> 115
@@ -74,7 +74,7 @@ object EmpyriumMod : ModInitializer {
                         Rarity.EPIC -> 15
                     }
 
-                    RecipeCodexConfig.addOne(RecipeCodexEntry(key.toString(), goal, cap))
+                    RecipeCodexConfig.addOne(RecipeCodexEntry(key.toString(), max, cap))
                 }
         }
 

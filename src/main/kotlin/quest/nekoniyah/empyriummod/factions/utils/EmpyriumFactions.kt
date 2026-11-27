@@ -67,7 +67,11 @@ class EmpyriumFactions : SubcommandHolder {
         }
 
         ServerPlayerEvents.JOIN.register { player ->
-            NET_CHANNEL.serverHandle(player).send(OpenScreenPacket("faction_selection"))
+            val factionName = player.getAttached(attachments.FACTION)
+
+            if (factionName == null) {
+                NET_CHANNEL.serverHandle(player).send(OpenScreenPacket("faction_selection"))
+            }
         }
 
         FactionPowerEvents.registerAll()
