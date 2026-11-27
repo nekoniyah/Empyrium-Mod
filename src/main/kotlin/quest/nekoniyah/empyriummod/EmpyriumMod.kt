@@ -24,6 +24,7 @@ import quest.nekoniyah.empyriummod.economy.ShopCommand
 import quest.nekoniyah.empyriummod.economy.currencies.CurrencyRegistry
 import quest.nekoniyah.empyriummod.factions.utils.EmpyriumFactions
 import quest.nekoniyah.empyriummod.factions.utils.FactionAttachments
+import quest.nekoniyah.empyriummod.network.packets.RecipeCodexResponsePacket
 
 object EmpyriumMod : ModInitializer {
     const val MOD_ID: String = "empyrium-mod"
@@ -62,11 +63,18 @@ object EmpyriumMod : ModInitializer {
                     val goal = when (rarity) {
                         Rarity.COMMON -> 100
                         Rarity.UNCOMMON -> 110
-                        Rarity.RARE ->  115
+                        Rarity.RARE -> 115
                         Rarity.EPIC -> 120
                     }
 
-                    RecipeCodexConfig.addOne(RecipeCodexEntry(key.toString(), goal))
+                    val cap = when (rarity) {
+                        Rarity.COMMON -> 55
+                        Rarity.UNCOMMON -> 40
+                        Rarity.RARE -> 25
+                        Rarity.EPIC -> 15
+                    }
+
+                    RecipeCodexConfig.addOne(RecipeCodexEntry(key.toString(), goal, cap))
                 }
         }
 
@@ -85,6 +93,16 @@ object EmpyriumMod : ModInitializer {
 
         ServerPlayerEvents.JOIN.register { player ->
             player.setAttached(CurrencyRegistry[0].ATTACHMENT, EmpyriumDatabase.getBalance(player.stringUUID))
+            val factionName = player.getAttached(factions.attachments.FACTION) ?: return@register
+            val faction = factions.getFaction(factionName) ?: return@register
+
+            for (power in faction.abilities) {
+                if (power.identifier == "recipe_codex_power") {
+                    NET_CHANNEL.serverHandle(player)
+                        .send(RecipeCodexResponsePacket(EmpyriumDatabase.getFullCodex(server!!, player.stringUUID)))
+                    break
+                }
+            }
         }
 
         ServerPlayerEvents.COPY_FROM.register { _, player, _ ->
