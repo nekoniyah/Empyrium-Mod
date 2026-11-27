@@ -1,14 +1,18 @@
 package quest.nekoniyah.empyriummod.database
 
+import com.google.gson.JsonParser
 import com.mojang.serialization.JsonOps
-import kotlinx.serialization.json.Json
+import net.minecraft.core.registries.BuiltInRegistries
 import net.minecraft.world.entity.player.Player
 import net.minecraft.world.item.ItemStack
+import org.jetbrains.exposed.v1.core.ResultRow
+import org.jetbrains.exposed.v1.core.and
 import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.jdbc.*
 import org.jetbrains.exposed.v1.jdbc.transactions.TransactionManager
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import quest.nekoniyah.empyriummod.EmpyriumMod
+import quest.nekoniyah.empyriummod.config.RecipeCodexConfig
 import quest.nekoniyah.empyriummod.economy.PlayerShopItem
 import quest.nekoniyah.empyriummod.economy.currencies.Currency
 import java.sql.Connection
@@ -31,8 +35,7 @@ object EmpyriumDatabase {
         TransactionManager.manager.defaultIsolationLevel = Connection.TRANSACTION_SERIALIZABLE
 
         transaction(db) {
-            SchemaUtils.create(PlayerShopTable)
-            SchemaUtils.create(PlayerCacheTable)
+            SchemaUtils.create(PlayerShopTable, PlayerCacheTable, PlayerCraftsTable, CurrencyBalanceTable)
         }
     }
 
@@ -53,11 +56,41 @@ object EmpyriumDatabase {
 
     fun cachePlayer(player: Player) {
         transaction(db) {
-            PlayerCacheTable.upsert {
+            PlayerCacheTable.upsert(body = {
                 it[uuid] = player.stringUUID
                 it[name] = player.name.string
-            }
+            }, where = {
+                PlayerCacheTable.uuid eq player.stringUUID
+            })
         }
+    }
+
+    fun removeItem(id: Int): Boolean {
+        getItem(id) ?: return false
+        return transaction(db) {
+            val deletedRows = PlayerShopTable.deleteWhere {
+                PlayerShopTable.id eq id
+            }
+
+            return@transaction deletedRows > 0
+        }
+    }
+
+    fun getItem(id: Int): PlayerShopItem? {
+        val res = transaction(db) {
+            return@transaction PlayerShopTable.selectAll().where { PlayerShopTable.id eq id }.firstOrNull()
+        }
+
+        if (res == null) return null
+        return PlayerShopItem(
+            res[PlayerShopTable.id].value,
+            res[PlayerShopTable.sellerUuid],
+            res[PlayerShopTable.itemData],
+            res[PlayerShopTable.itemCount],
+            res[PlayerShopTable.currency],
+            res[PlayerShopTable.price],
+            getCachedPlayerName(res[PlayerShopTable.sellerUuid]) ?: "Unknown"
+        )
     }
 
     fun sellItem(player: Player, itemstack: ItemStack, cur: Currency, curPrice: Int) {
@@ -77,16 +110,78 @@ object EmpyriumDatabase {
         }
     }
 
-    fun decodeStringToItemStack(string: String): ItemStack {
-        val pair =
-            ItemStack.CODEC.decode(JsonOps.INSTANCE, Json.decodeFromString(string)).resultOrPartial().orElseThrow()
-        return pair.first
+
+    fun checkRecipeCodexForFreeCraft(player: Player, item: ItemStack): Boolean {
+        val itemLocation = BuiltInRegistries.ITEM.getKey(item.item)
+
+        val allCraftData = RecipeCodexConfig.getAll()
+        val itemCraftInfo = allCraftData[itemLocation.toString()] ?: return false
+
+        return transaction(db) {
+            val existingRec = PlayerCraftsTable.selectAll()
+                .where { (PlayerCraftsTable.playerUuid eq player.stringUUID) and (PlayerCraftsTable.itemId eq itemLocation.toString()) }
+                .firstOrNull() ?: return@transaction false
+
+
+            if (existingRec[PlayerCraftsTable.freeCount] >= itemCraftInfo.freeCount) {
+                return@transaction transaction(db) {
+                    PlayerCraftsTable.deleteWhere { (PlayerCraftsTable.playerUuid eq player.stringUUID) and (PlayerCraftsTable.itemId eq itemLocation.toString()) }
+                    return@transaction false
+                }
+            }
+
+            return@transaction existingRec[PlayerCraftsTable.count] >= itemCraftInfo.goal
+        }
+
+    }
+
+
+    fun addItemToRecipeCodex(player: Player, item: ItemStack): ResultRow? {
+        return transaction(db) {
+            return@transaction PlayerCraftsTable.upsert(body = {
+                it[playerUuid] = player.stringUUID
+                it[itemId] = BuiltInRegistries.ITEM.getKey(item.item).toString()
+            }, where = {
+                PlayerCraftsTable.playerUuid eq player.stringUUID
+            }).resultedValues?.first()
+        }
+    }
+
+    fun addOrUpdateItemToRecipeCodex(player: Player, item: ItemStack, wasFree: Boolean? = false) {
+        val itemKey = BuiltInRegistries.ITEM.getKey(item.item)
+        transaction(db) {
+            var existingRes = PlayerCraftsTable.selectAll()
+                .where { (PlayerCraftsTable.playerUuid eq player.stringUUID) and (PlayerCraftsTable.itemId eq itemKey.toString()) }
+                .firstOrNull()
+
+            if (existingRes == null) {
+                existingRes = addItemToRecipeCodex(player, item)!!
+            }
+
+            var vcount = existingRes[PlayerCraftsTable.count]
+            var vfreeCount = existingRes[PlayerCraftsTable.freeCount]
+
+
+            if (wasFree == true) {
+                vfreeCount++
+            } else {
+                vcount++
+            }
+
+            transaction(db) {
+                PlayerCraftsTable.update({ (PlayerCraftsTable.playerUuid eq player.stringUUID) and (PlayerCraftsTable.itemId eq itemKey.toString()) }) {
+                    it[count] = vcount
+                    it[freeCount] = vfreeCount
+                }
+            }
+        }
     }
 
     fun getItems(): List<PlayerShopItem> {
         return transaction(db) {
             return@transaction PlayerShopTable.selectAll().orderBy(PlayerShopTable.id).toList().map { resultRow ->
                 PlayerShopItem(
+                    resultRow[PlayerShopTable.id].value,
                     resultRow[PlayerShopTable.sellerUuid],
                     resultRow[PlayerShopTable.itemData],
                     resultRow[PlayerShopTable.itemCount],
@@ -96,5 +191,39 @@ object EmpyriumDatabase {
                 )
             }
         }
+    }
+
+
+    fun updatePlayerBalance(player: Player, newBalance: Int) {
+        transaction(db) {
+            CurrencyBalanceTable.upsert(body = {
+                it[uuid] = player.stringUUID
+                it[balance] = newBalance
+            }, where = { CurrencyBalanceTable.uuid eq player.stringUUID })
+        }
+    }
+
+    fun getBalance(uuid: String): Int {
+        return transaction(db) {
+            return@transaction CurrencyBalanceTable.selectAll().where { CurrencyBalanceTable.uuid eq uuid }
+                .firstOrNull()?.get(
+                    CurrencyBalanceTable.balance
+                ) ?: 0
+        }
+    }
+
+    fun updatePlayerBalance(vuuid: String, newBalance: Int) {
+        transaction(db) {
+            CurrencyBalanceTable.upsert(body = {
+                it[uuid] = vuuid
+                it[balance] = newBalance
+            }, where = { CurrencyBalanceTable.uuid eq vuuid })
+        }
+    }
+
+    fun decodeStringToItemStack(string: String): ItemStack? {
+        return runCatching {
+            ItemStack.CODEC.parse(JsonOps.INSTANCE, JsonParser.parseString(string)).result().orElse(null)
+        }.getOrNull()
     }
 }

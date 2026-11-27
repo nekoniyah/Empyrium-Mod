@@ -5,26 +5,29 @@ import net.fabricmc.api.ModInitializer
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback
 import net.fabricmc.fabric.api.entity.event.v1.ServerPlayerEvents
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents
+import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents
+import net.minecraft.core.registries.BuiltInRegistries
 import net.minecraft.resources.ResourceLocation
 import net.minecraft.server.MinecraftServer
 import net.minecraft.world.entity.player.Player
 import net.minecraft.world.item.ItemStack
 import net.minecraft.world.item.Items
 import net.minecraft.world.level.storage.LevelResource
+import net.minecraft.world.item.Rarity
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import quest.nekoniyah.empyriummod.commands.EmpyriumCommand
+import quest.nekoniyah.empyriummod.config.RecipeCodexConfig
+import quest.nekoniyah.empyriummod.config.RecipeCodexEntry
 import quest.nekoniyah.empyriummod.database.EmpyriumDatabase
 import quest.nekoniyah.empyriummod.difficulty.DifficultyAttachments
 import quest.nekoniyah.empyriummod.difficulty.EmpyriumDifficulty
 import quest.nekoniyah.empyriummod.economy.CurrencyCommand
+import quest.nekoniyah.empyriummod.economy.PlayerShopEvents
 import quest.nekoniyah.empyriummod.economy.ShopCommand
 import quest.nekoniyah.empyriummod.economy.currencies.CurrencyRegistry
 import quest.nekoniyah.empyriummod.factions.utils.EmpyriumFactions
 import quest.nekoniyah.empyriummod.factions.utils.FactionAttachments
-import quest.nekoniyah.empyriummod.network.packets.OpenScreenPacket
-import quest.nekoniyah.empyriummod.network.packets.PlayerShopRequestPacket
-import quest.nekoniyah.empyriummod.network.packets.PlayerShopResponsePacket
 
 object EmpyriumMod : ModInitializer {
     const val MOD_ID: String = "empyrium-mod"
@@ -40,14 +43,42 @@ object EmpyriumMod : ModInitializer {
     val NET_CHANNEL = OwoNetChannel.create(id("main"))
 
     override fun onInitialize() {
-
         factions.register()
+
+        RecipeCodexConfig.init()
 
         ServerLifecycleEvents.SERVER_STARTED.register { srv ->
             server = srv
 
             val dbDir = srv.getWorldPath(LevelResource.ROOT).resolve(MOD_ID)
             EmpyriumDatabase.init(dbDir)
+            
+            if (!RecipeCodexConfig.checkEmptiness()) return@register
+
+            val allRecipes = srv.recipeManager.recipes
+
+            allRecipes.map { it.value.getResultItem(srv.registryAccess()) }.filter { stack -> !stack.isEmpty }
+                .distinct().forEach { itemStack ->
+                    val key = BuiltInRegistries.ITEM.getKey(itemStack.item)
+
+                    val rarity = itemStack.rarity
+
+                    val goal = when (rarity) {
+                        Rarity.COMMON -> 25
+                        Rarity.UNCOMMON -> 15
+                        Rarity.RARE -> 7
+                        Rarity.EPIC -> 3
+                    }
+
+                    val freeCount = when (rarity) {
+                        Rarity.COMMON -> 10
+                        Rarity.UNCOMMON -> 7
+                        Rarity.RARE -> 3
+                        Rarity.EPIC -> 1
+                    }
+
+                    RecipeCodexConfig.addOne(RecipeCodexEntry(key.toString(), goal, freeCount))
+                }
         }
 
         ServerLifecycleEvents.SERVER_STOPPED.register {
@@ -64,31 +95,25 @@ object EmpyriumMod : ModInitializer {
         }
 
         ServerPlayerEvents.JOIN.register { player ->
-            EmpyriumDatabase.sellItem(player, ItemStack(Items.ACACIA_LOG), CurrencyRegistry[0], 10)
-            EmpyriumDatabase.cachePlayer(player)
-            sendPlayerShopUpdate(player, 0)
+            player.setAttached(CurrencyRegistry[0].ATTACHMENT, EmpyriumDatabase.getBalance(player.stringUUID))
         }
 
-        NET_CHANNEL.registerClientboundDeferred(OpenScreenPacket::class.java)
-
-        NET_CHANNEL.registerServerbound(PlayerShopRequestPacket::class.java) { packet, source ->
-            sendPlayerShopUpdate(source.player, packet.page)
+        ServerPlayerEvents.COPY_FROM.register { _, player, _ ->
+            player.setAttached(CurrencyRegistry[0].ATTACHMENT, EmpyriumDatabase.getBalance(player.stringUUID))
         }
+
+        ServerTickEvents.END_SERVER_TICK.register { server ->
+            for (player in server.playerList.players) {
+                player.setAttached(CurrencyRegistry[0].ATTACHMENT, EmpyriumDatabase.getBalance(player.stringUUID))
+            }
+        }
+
+        EmpyriumDatabase.init()
+        PlayerShopEvents.register()
 
         LOGGER.info("Hello Fabric world!")
     }
 
-    fun sendPlayerShopUpdate(player: Player, page: Int) {
-        val allItems = EmpyriumDatabase.getItems()
-        val pageSize = 20
-
-        val endIndex = if (allItems.size < pageSize) allItems.size else page * pageSize + pageSize
-        val startIndex = if (allItems.size < pageSize) 0 else page * pageSize
-
-        val slice = allItems.subList(startIndex, endIndex)
-
-        NET_CHANNEL.serverHandle(player).send(PlayerShopResponsePacket(page, slice))
-    }
 
     fun id(path: String): ResourceLocation = ResourceLocation.fromNamespaceAndPath(MOD_ID, path)
 }

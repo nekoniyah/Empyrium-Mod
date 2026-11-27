@@ -1,0 +1,42 @@
+# Configuration de l'environnement de développement (mise)
+# Documentation détaillée : voir DEV_ENV.md
+
+[tools]
+java = "temurin-25"
+
+[env]
+# Évite les fenêtres Java/AWT vides sous les gestionnaires de fenêtres tiling (Hyprland / Omarchy)
+_JAVA_AWT_WM_NONREPARENTING = "1"
+
+[tasks.client]
+description = "Lance le client Minecraft Fabric avec le mod (fenêtre graphique native)"
+run = "./gradlew runClient"
+
+[tasks.server]
+description = "Lance le serveur dédié Minecraft Fabric"
+run = "./gradlew runServer"
+
+[tasks.datagen]
+description = "Exécute la génération de données Fabric (DataGen)"
+run = "./gradlew runDatagen"
+
+[tasks.build]
+description = "Compile le mod et génère les JARs dans build/libs/"
+run = "./gradlew build"
+
+[tasks.test]
+description = "Exécute les tests unitaires Kotlin"
+run = "./gradlew test"
+
+[tasks.clean]
+description = "Nettoie le dossier de build Gradle"
+run = "./gradlew clean"
+
+[tasks.check-env]
+description = "Vérifie la version de Java, Gradle et les variables d'affichage de l'OS"
+run = """
+echo "Java : $(java -version 2>&1 | head -n 1)"
+echo "JAVA_HOME : ${JAVA_HOME:-non défini}"
+echo "Session : XDG_SESSION_TYPE=${XDG_SESSION_TYPE:-inconnu} | WAYLAND_DISPLAY=${WAYLAND_DISPLAY:-aucun} | DISPLAY=${DISPLAY:-aucun}"
+./gradlew --version | head -n 5
+"""

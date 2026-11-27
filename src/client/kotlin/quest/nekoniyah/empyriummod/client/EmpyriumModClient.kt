@@ -11,10 +11,12 @@ import quest.nekoniyah.empyriummod.client.overlays.EmpyriumOverlay
 import quest.nekoniyah.empyriummod.client.screens.EmpyriumScreen
 import quest.nekoniyah.empyriummod.client.screens.FactionSelectionScreen
 import quest.nekoniyah.empyriummod.client.screens.PlayerShopScreen
+import quest.nekoniyah.empyriummod.client.screens.ShopResult
 import quest.nekoniyah.empyriummod.client.util.ui.CurrencyHud
 import quest.nekoniyah.empyriummod.economy.PlayerShopItem
 import quest.nekoniyah.empyriummod.economy.currencies.CurrencyRegistry
 import quest.nekoniyah.empyriummod.network.packets.OpenScreenPacket
+import quest.nekoniyah.empyriummod.network.packets.PlayerShopMessagePacket
 import quest.nekoniyah.empyriummod.network.packets.PlayerShopResponsePacket
 
 object EmpyriumModClient : ClientModInitializer {
@@ -23,11 +25,8 @@ object EmpyriumModClient : ClientModInitializer {
     lateinit var keybinding: EmpyriumKeyMappings
 
     val screenRegistry: ArrayList<EmpyriumScreen> = arrayListOf(FactionSelectionScreen(), PlayerShopScreen())
-
-
-    val cachedPlayerShopItems: HashMap<Int, List<PlayerShopItem>> = HashMap()
-
-    var playerShopPage = 0
+    var cachedPlayerShopItems: List<PlayerShopItem> = listOf()
+    var playerShopMessage: ShopResult? = null
 
     override fun onInitializeClient() {
         // This entrypoint is suitable for setting up client-specific logic, such as rendering.
@@ -49,10 +48,14 @@ object EmpyriumModClient : ClientModInitializer {
             )
         }
 
-        EmpyriumMod.NET_CHANNEL.registerClientbound(PlayerShopResponsePacket::class.java) { packet, access ->
-            cachedPlayerShopItems[packet.page] = packet.items
+        EmpyriumMod.NET_CHANNEL.registerClientbound(PlayerShopResponsePacket::class.java) { packet, _ ->
+            cachedPlayerShopItems = packet.items
+            (Minecraft.getInstance().screen as? PlayerShopScreen)?.refresh()
         }
 
+        EmpyriumMod.NET_CHANNEL.registerClientbound(PlayerShopMessagePacket::class.java) { packet, _ ->
+            playerShopMessage = ShopResult(packet.success, packet.message)
+        }
 
         ClientTickEvents.END_CLIENT_TICK.register { minecraft ->
             val player = minecraft.player ?: return@register

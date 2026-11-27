@@ -2,6 +2,7 @@ package quest.nekoniyah.empyriummod.economy
 
 @JvmRecord
 data class PlayerShopItem(
+    val id: Int,
     val sellerUuid: String,
     val item: String,
     val count: Int,

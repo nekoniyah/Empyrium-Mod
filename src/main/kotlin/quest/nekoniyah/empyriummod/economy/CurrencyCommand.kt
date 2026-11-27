@@ -9,6 +9,7 @@ import net.minecraft.commands.Commands
 import net.minecraft.commands.arguments.EntityArgument
 import net.minecraft.world.entity.player.Player
 import quest.nekoniyah.empyriummod.commands.SubcommandHolder
+import quest.nekoniyah.empyriummod.database.EmpyriumDatabase
 import quest.nekoniyah.empyriummod.economy.currencies.Currency
 import quest.nekoniyah.empyriummod.economy.currencies.CurrencyRegistry
 
@@ -128,17 +129,18 @@ class CurrencyCommand : SubcommandHolder("currency", true) {
     fun giveMoney(player: Player, currency: Currency, amount: Int) {
         val playerCurrencyAmount = player.getAttached(currency.ATTACHMENT) ?: 0
         val newAmount = playerCurrencyAmount + amount
-        player.setAttached(currency.ATTACHMENT, newAmount)
+
+        EmpyriumDatabase.updatePlayerBalance(player, newAmount)
     }
 
     fun setMoney(player: Player, currency: Currency, amount: Int) {
-        player.setAttached(currency.ATTACHMENT, amount)
+        EmpyriumDatabase.updatePlayerBalance(player, amount)
     }
 
     fun removeMoney(player: Player, currency: Currency, amount: Int) {
         val playerCurrencyAmount = player.getAttached(currency.ATTACHMENT) ?: 0
         val newAmount = playerCurrencyAmount - amount
-        player.setAttached(currency.ATTACHMENT, newAmount)
+        EmpyriumDatabase.updatePlayerBalance(player, newAmount)
     }
 
 
