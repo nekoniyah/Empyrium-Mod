@@ -7,7 +7,7 @@ import kotlinx.serialization.json.Json
 
 
 @Serializable
-data class RecipeCodexEntry(val key: String, val goal: Int, val freeCount: Int)
+data class RecipeCodexEntry(val key: String, val max: Int, val cap: Int)
 
 
 object RecipeCodexConfig : ConfigManager("recipe-codex") {

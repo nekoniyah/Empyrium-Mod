@@ -14,9 +14,11 @@ object RecipeCodexBuilder {
 
     fun craftableKeys(server: MinecraftServer): List<String> =
         server.recipeManager.getAllRecipesFor(RecipeType.CRAFTING)
+            .asSequence()
             .map { it.value().getResultItem(server.registryAccess()) }
             // Special recipes (map cloning, firework stars, etc.) have no fixed result
             .filterNot { it.isEmpty }.map { keyOf(it) }.distinct().sorted()
+            .toList()
 
     fun build(
         server: MinecraftServer,

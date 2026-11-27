@@ -4,7 +4,7 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 @JvmRecord
-data class RecipeCodexPacketEntry(val itemKey: String, val goal: Int, val current: Int, val totalFreeCount: Int, val usedFreeCount: Int)
+data class RecipeCodexPacketEntry(val itemKey: String, val max: Int, val current: Int, val cap: Int)
 
 @JvmRecord
 data class RecipeCodexResponsePacket(val items: List<RecipeCodexPacketEntry>)

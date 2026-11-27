@@ -18,7 +18,6 @@ import net.minecraft.network.chat.Component as Text
 class RecipeCodexScreen : EmpyriumScreen("Recipe Codex") {
     override val identifier: String = "recipe_codex"
 
-    private var hideCompleted = false
     private var search = ""
     private var page = 0
     private var pager: FlowLayout? = null
@@ -73,16 +72,15 @@ class RecipeCodexScreen : EmpyriumScreen("Recipe Codex") {
         val pager = pager ?: return
         val entries = EmpyriumModClient.codex
 
-        // Overall progress
-        val tracked = entries.filter { it.goal > 0 }
-        val done = tracked.count { isComplete(it) }
+        val tracked = entries.filter { it.max > 0 }
+        val maxed = tracked.count { isMax(it) }
         summary.clearChildren()
-        summary.child(label("$done / ${tracked.size} goals completed", GRAY))
-        summary.child(progressBar(WIDTH - 20, done, tracked.size, done == tracked.size && done > 0))
+        summary.child(label("$maxed / ${tracked.size} recipes maxed", GRAY))
+        summary.child(progressBar(WIDTH - 20, maxed, tracked.size, maxed == tracked.size && maxed > 0))
 
-        val visible = entries.filterNot { hideCompleted && isComplete(it) }.filter { matchesSearch(it) }
-            .sortedWith(compareBy<RecipeCodexPacketEntry> { it.goal <= 0 }.thenBy { isComplete(it) }
-                .thenByDescending { fraction(it.current, it.goal) }.thenBy { it.itemKey })
+        val visible = entries.filter { matchesSearch(it) }
+            .sortedWith(compareBy<RecipeCodexPacketEntry> { it.max <= 0 }.thenBy { isMax(it) }
+                .thenByDescending { fraction(it.current, it.max) }.thenBy { it.itemKey })
 
         list.clearChildren()
 
@@ -90,7 +88,7 @@ class RecipeCodexScreen : EmpyriumScreen("Recipe Codex") {
             val message = when {
                 entries.isEmpty() -> "No recipes to show."
                 search.isNotBlank() -> "No matching recipes."
-                else -> "All recipes completed!"
+                else -> "You maxed all recipes!"
             }
             list.child(label(message, GRAY))
         }
@@ -136,12 +134,11 @@ class RecipeCodexScreen : EmpyriumScreen("Recipe Codex") {
         cell.verticalAlignment(VerticalAlignment.CENTER)
         cell.margins(Insets.of(1))
 
-        // Gold: free craft ready. Green: completed.
         val color = when {
-            hasFreeCraft(entry) -> 0x99FFAA00.toInt()
-            isComplete(entry) -> 0x9933AA33.toInt()
+            isMax(entry) -> 0x9933AA33.toInt()
             else -> 0x55000000
         }
+
         cell.surface(Surface.flat(color))
 
         // The tooltip is on the cell, so the whole square responds
@@ -155,8 +152,8 @@ class RecipeCodexScreen : EmpyriumScreen("Recipe Codex") {
             cell.child(count)
         }
 
-        if (entry.goal > 0 && entry.current > 0) {
-            val bar = progressBar(CELL - 2, entry.current, entry.goal, isComplete(entry))
+        if (entry.max > 0 && entry.current > 0) {
+            val bar = progressBar(CELL - 2, entry.current, entry.max, isMax(entry))
             bar.positioning(Positioning.relative(50, 100))
             bar.zIndex(250)
             cell.child(bar)
@@ -171,33 +168,29 @@ class RecipeCodexScreen : EmpyriumScreen("Recipe Codex") {
         if (stack != null) lines.addAll(getTooltipFromItem(Minecraft.getInstance(), stack))
         else lines.add(Text.literal(entry.itemKey))
 
-        val progress = if (entry.goal <= 0) "Crafted: ${entry.current} (no goal)"
-        else if (isComplete(entry)) "Completed (${entry.current} / ${entry.goal})"
-        else "${entry.current} / ${entry.goal} (${(fraction(entry.current, entry.goal) * 100).toInt()}%)"
-        lines.add(colored(progress, if (isComplete(entry)) GREEN else GRAY))
+        val progress = if (entry.max <= 0) "Crafted: ${entry.current}"
+        else if (isMax(entry)) "Maxed: ${entry.current} / ${entry.max}"
+        else "${entry.current} / ${entry.max} (${
+            (fraction(
+                entry.current, entry.max
+            ) * 100).toInt()
+        }% chance for a free craft.)"
 
-        if (entry.totalFreeCount > 0) {
-            val left = (entry.totalFreeCount - entry.usedFreeCount).coerceAtLeast(0)
-            lines.add(colored("Free: $left / ${entry.totalFreeCount} left", if (left > 0) GOLD else GRAY))
-        }
+        lines.add(colored(progress, if (isMax(entry)) GREEN else GRAY))
 
         return lines
     }
 
-    private fun colored(text: String, color: Int): Text =
-        Text.literal(text).withStyle { it.withColor(color) }
+    private fun colored(text: String, color: Int): Text = Text.literal(text).withStyle { it.withColor(color) }
 
-    private fun hasFreeCraft(entry: RecipeCodexPacketEntry): Boolean =
-        isComplete(entry) && entry.usedFreeCount < entry.totalFreeCount
-
-    private fun progressBar(width: Int, current: Int, goal: Int, complete: Boolean): FlowLayout {
+    private fun progressBar(width: Int, current: Int, goal: Int, reachedMax: Boolean): FlowLayout {
         val track = Containers.horizontalFlow(Sizing.fixed(width), Sizing.fixed(BAR_HEIGHT))
         track.surface(Surface.flat(0xFF333333.toInt()))
 
         val filled = (width * fraction(current, goal)).toInt()
         if (filled > 0) {
             val fill = Containers.horizontalFlow(Sizing.fixed(filled), Sizing.fixed(BAR_HEIGHT))
-            val color = if (complete) 0xFF55FF55 else 0xFF55AAFF
+            val color = if (reachedMax) 0xFF55FF55 else 0xFF55AAFF
             fill.surface(Surface.flat(color.toInt()))
             track.child(fill)
         }
@@ -207,7 +200,7 @@ class RecipeCodexScreen : EmpyriumScreen("Recipe Codex") {
     private fun fraction(current: Int, goal: Int): Float =
         if (goal <= 0) 0f else (current.toFloat() / goal).coerceIn(0f, 1f)
 
-    private fun isComplete(entry: RecipeCodexPacketEntry): Boolean = entry.goal > 0 && entry.current >= entry.goal
+    private fun isMax(entry: RecipeCodexPacketEntry): Boolean = entry.max > 0 && entry.current >= entry.max
 
     private fun itemFor(key: String): ItemStack? {
         val id = ResourceLocation.tryParse(key) ?: return null
@@ -229,6 +222,5 @@ class RecipeCodexScreen : EmpyriumScreen("Recipe Codex") {
         const val PAGE_SIZE = COLUMNS * 6
         const val GRAY = 0xAAAAAA
         const val GREEN = 0x55FF55
-        const val GOLD = 0xFFAA00
     }
 }

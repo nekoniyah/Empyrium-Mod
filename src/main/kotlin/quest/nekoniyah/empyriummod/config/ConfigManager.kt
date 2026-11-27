@@ -11,8 +11,6 @@ open class ConfigManager(val name: String) {
     val empyriumFolder = File(empyriumFolderPath)
     val configFile = File("$empyriumFolderPath$name.json")
 
-    val written = false
-
     fun init() {
         if (!empyriumFolder.exists()) {
             empyriumFolder.mkdirs()

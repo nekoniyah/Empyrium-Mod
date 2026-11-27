@@ -38,6 +38,9 @@ public abstract class ResultSlotMixin {
         if (removeCount <= 0 || !(player instanceof ServerPlayer serverPlayer)) return;
 
         String factionName = player.getAttached(EmpyriumMod.INSTANCE.getFactions().getAttachments().getFACTION());
+
+        if(factionName == null) return;
+
         EmpyriumFaction faction = EmpyriumMod.INSTANCE.getFactions().getFaction(factionName);
 
         if (faction == null) return;
@@ -62,10 +65,10 @@ public abstract class ResultSlotMixin {
                 player.getInventory().placeItemBackInInventory(ingredient.copyWithCount(1));
             }
 
-            EmpyriumDatabase.INSTANCE.addOrUpdateItemToRecipeCodex(this.player, itemStack, true);
+            EmpyriumDatabase.INSTANCE.addOrUpdateItemToRecipeCodex(this.player, itemStack);
 
         } else {
-            EmpyriumDatabase.INSTANCE.addOrUpdateItemToRecipeCodex(this.player, itemStack, false);
+            EmpyriumDatabase.INSTANCE.addOrUpdateItemToRecipeCodex(this.player, itemStack);
         }
     }
 }

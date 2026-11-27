@@ -9,10 +9,6 @@ import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents
 import net.minecraft.core.registries.BuiltInRegistries
 import net.minecraft.resources.ResourceLocation
 import net.minecraft.server.MinecraftServer
-import net.minecraft.world.entity.player.Player
-import net.minecraft.world.item.ItemStack
-import net.minecraft.world.item.Items
-import net.minecraft.world.level.storage.LevelResource
 import net.minecraft.world.item.Rarity
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
@@ -52,7 +48,7 @@ object EmpyriumMod : ModInitializer {
 
             val dbDir = srv.serverDirectory.resolve("data").resolve(MOD_ID)
             EmpyriumDatabase.init(dbDir)
-            
+
             if (!RecipeCodexConfig.checkEmptiness()) return@register
 
             val allRecipes = srv.recipeManager.recipes
@@ -64,20 +60,13 @@ object EmpyriumMod : ModInitializer {
                     val rarity = itemStack.rarity
 
                     val goal = when (rarity) {
-                        Rarity.COMMON -> 25
-                        Rarity.UNCOMMON -> 15
-                        Rarity.RARE -> 7
-                        Rarity.EPIC -> 3
+                        Rarity.COMMON -> 100
+                        Rarity.UNCOMMON -> 110
+                        Rarity.RARE ->  115
+                        Rarity.EPIC -> 120
                     }
 
-                    val freeCount = when (rarity) {
-                        Rarity.COMMON -> 10
-                        Rarity.UNCOMMON -> 7
-                        Rarity.RARE -> 3
-                        Rarity.EPIC -> 1
-                    }
-
-                    RecipeCodexConfig.addOne(RecipeCodexEntry(key.toString(), goal, freeCount))
+                    RecipeCodexConfig.addOne(RecipeCodexEntry(key.toString(), goal))
                 }
         }
 

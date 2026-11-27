@@ -4,7 +4,6 @@ import com.google.gson.JsonParser
 import com.mojang.serialization.JsonOps
 import net.minecraft.core.registries.BuiltInRegistries
 import net.minecraft.server.MinecraftServer
-import net.minecraft.server.level.ServerPlayer
 import net.minecraft.world.entity.player.Player
 import net.minecraft.world.item.ItemStack
 import org.jetbrains.exposed.v1.core.ResultRow
@@ -23,6 +22,7 @@ import quest.nekoniyah.empyriummod.network.packets.RecipeCodexResponsePacket
 import java.nio.file.Files
 import java.nio.file.Path
 import java.sql.Connection
+import kotlin.random.Random
 
 object EmpyriumDatabase {
     var db: Database? = null
@@ -127,14 +127,18 @@ object EmpyriumDatabase {
                 .firstOrNull() ?: return@transaction false
 
 
-            if (existingRec[PlayerCraftsTable.freeCount] > itemCraftInfo.freeCount) {
-                return@transaction transaction(db) {
+            val hasDone100 = existingRec[PlayerCraftsTable.count] >= itemCraftInfo.max
+
+            if (hasDone100) {
+                transaction(db) {
                     PlayerCraftsTable.deleteWhere { (PlayerCraftsTable.playerUuid eq player.stringUUID) and (PlayerCraftsTable.itemId eq itemLocation.toString()) }
-                    return@transaction false
                 }
             }
 
-            return@transaction existingRec[PlayerCraftsTable.count] >= itemCraftInfo.goal
+            val percentage = existingRec[PlayerCraftsTable.count]
+            val rand = Random.nextInt(0, 100 + 1)
+
+            return@transaction rand <= percentage
         }
 
     }
@@ -151,7 +155,7 @@ object EmpyriumDatabase {
         }
     }
 
-    fun addOrUpdateItemToRecipeCodex(player: Player, item: ItemStack, wasFree: Boolean? = false) {
+    fun addOrUpdateItemToRecipeCodex(player: Player, item: ItemStack) {
         val itemKey = BuiltInRegistries.ITEM.getKey(item.item)
         transaction(db) {
             var existingRes = PlayerCraftsTable.selectAll()
@@ -162,25 +166,23 @@ object EmpyriumDatabase {
                 existingRes = addItemToRecipeCodex(player, item)!!
             }
 
-            var vcount = existingRes[PlayerCraftsTable.count]
-            var vfreeCount = existingRes[PlayerCraftsTable.freeCount]
 
+            val conf =
+                RecipeCodexConfig.getAll()[BuiltInRegistries.ITEM.getKey(item.item).toString()] ?: return@transaction
 
-            if (wasFree == true) {
-                vfreeCount++
-            } else {
-                vcount++
-            }
+            if (existingRes[PlayerCraftsTable.count] >= conf.cap) return@transaction
+
+            val newCount = existingRes[PlayerCraftsTable.count] + 1
 
             transaction(db) {
                 PlayerCraftsTable.update({ (PlayerCraftsTable.playerUuid eq player.stringUUID) and (PlayerCraftsTable.itemId eq itemKey.toString()) }) {
-                    it[count] = vcount
-                    it[freeCount] = vfreeCount
+                    it[count] = newCount
                 }
             }
         }
 
-        NET_CHANNEL.serverHandle(player).send(RecipeCodexResponsePacket(getFullCodex(EmpyriumMod.server!!, player.stringUUID)))
+        NET_CHANNEL.serverHandle(player)
+            .send(RecipeCodexResponsePacket(getFullCodex(EmpyriumMod.server!!, player.stringUUID)))
     }
 
     fun getItems(): List<PlayerShopItem> {
@@ -241,10 +243,9 @@ object EmpyriumDatabase {
                 val conf = RecipeCodexConfig.getAll()[resultRow[PlayerCraftsTable.itemId]]
                 RecipeCodexPacketEntry(
                     resultRow[PlayerCraftsTable.itemId],
-                    conf?.goal ?: 0,
+                    conf?.max ?: 100,
                     resultRow[PlayerCraftsTable.count],
-                    conf?.freeCount ?: 0,
-                    resultRow[PlayerCraftsTable.freeCount]
+                    conf?.cap ?: 50
                 )
             }
         }
@@ -255,7 +256,7 @@ object EmpyriumDatabase {
 
         return RecipeCodexBuilder.build(server, getAllCodexItems(uuid)) { key ->
             RecipeCodexPacketEntry(
-                key, config[key]?.goal ?: 0, 0, config[key]?.freeCount ?: 0, 0
+                key, config[key]?.max ?: 100, 0, config[key]?.cap ?: 50
             )
         }
     }
