@@ -4,6 +4,7 @@ import io.wispforest.owo.ui.component.Components
 import io.wispforest.owo.ui.container.Containers
 import io.wispforest.owo.ui.container.FlowLayout
 import io.wispforest.owo.ui.core.*
+import net.minecraft.client.Minecraft
 import net.minecraft.core.registries.BuiltInRegistries
 import net.minecraft.resources.ResourceLocation
 import net.minecraft.world.item.ItemStack
@@ -36,7 +37,7 @@ class RecipeCodexScreen : EmpyriumScreen("Recipe Codex") {
 
         panel.child(label("Recipe Codex"))
 
-        val newSummary = column()
+        val newSummary = column(WIDTH)
         summary = newSummary
         panel.child(newSummary)
 
@@ -50,14 +51,7 @@ class RecipeCodexScreen : EmpyriumScreen("Recipe Codex") {
         }
         panel.child(searchBox)
 
-        panel.child(Components.button(filterText()) { button ->
-            hideCompleted = !hideCompleted
-            page = 0
-            button.message = filterText()
-            refresh()
-        })
-
-        val newList = column()
+        val newList = column(WIDTH)
         list = newList
         panel.child(
             Containers.verticalScroll(Sizing.fixed(WIDTH), Sizing.fixed(maxOf(60, height - 150)), newList)
@@ -86,7 +80,6 @@ class RecipeCodexScreen : EmpyriumScreen("Recipe Codex") {
         summary.child(label("$done / ${tracked.size} goals completed", GRAY))
         summary.child(progressBar(WIDTH - 20, done, tracked.size, done == tracked.size && done > 0))
 
-        // Unfinished first, closest to completion at the top
         val visible = entries.filterNot { hideCompleted && isComplete(it) }.filter { matchesSearch(it) }
             .sortedWith(compareBy<RecipeCodexPacketEntry> { it.goal <= 0 }.thenBy { isComplete(it) }
                 .thenByDescending { fraction(it.current, it.goal) }.thenBy { it.itemKey })
@@ -104,7 +97,8 @@ class RecipeCodexScreen : EmpyriumScreen("Recipe Codex") {
 
         val pages = maxOf(1, (visible.size + PAGE_SIZE - 1) / PAGE_SIZE)
         page = page.coerceIn(0, pages - 1)
-        visible.drop(page * PAGE_SIZE).take(PAGE_SIZE).forEach { list.child(entryRow(it)) }
+        val shown = visible.drop(page * PAGE_SIZE).take(PAGE_SIZE)
+        if (shown.isNotEmpty()) list.child(entryGrid(shown))
 
         pager.clearChildren()
         pager.child(pageButton("<", page > 0, -1))
@@ -124,41 +118,77 @@ class RecipeCodexScreen : EmpyriumScreen("Recipe Codex") {
         ) == true
     }
 
-    private fun entryRow(entry: RecipeCodexPacketEntry): FlowLayout {
+    private fun entryGrid(entries: List<RecipeCodexPacketEntry>): Component {
+        val rows = (entries.size + COLUMNS - 1) / COLUMNS
+        val grid = Containers.grid(Sizing.content(), Sizing.content(), rows, COLUMNS)
+
+        entries.forEachIndexed { index, entry ->
+            grid.child(entryCell(entry), index / COLUMNS, index % COLUMNS)
+        }
+        return grid
+    }
+
+    private fun entryCell(entry: RecipeCodexPacketEntry): FlowLayout {
         val stack = itemFor(entry.itemKey)
-        val name = stack?.hoverName?.string ?: entry.itemKey
-        val complete = isComplete(entry)
 
-        val row = Containers.horizontalFlow(Sizing.fixed(WIDTH - 10), Sizing.content())
-        row.surface(Surface.flat(0x55000000))
-        row.padding(Insets.of(4))
-        row.verticalAlignment(VerticalAlignment.CENTER)
-        row.gap(6)
+        val cell = Containers.verticalFlow(Sizing.fixed(CELL), Sizing.fixed(CELL))
+        cell.horizontalAlignment(HorizontalAlignment.CENTER)
+        cell.verticalAlignment(VerticalAlignment.CENTER)
+        cell.margins(Insets.of(1))
 
-        val icon = Components.item(stack ?: ItemStack(Items.BARRIER))
-        if (stack != null) icon.setTooltipFromStack(true)
-        row.child(icon)
+        // Gold: free craft ready. Green: completed.
+        val color = when {
+            hasFreeCraft(entry) -> 0x99FFAA00.toInt()
+            isComplete(entry) -> 0x9933AA33.toInt()
+            else -> 0x55000000
+        }
+        cell.surface(Surface.flat(color))
 
-        val info = Containers.verticalFlow(Sizing.fixed(TEXT_WIDTH), Sizing.content())
-        info.gap(2)
+        // The tooltip is on the cell, so the whole square responds
+        cell.tooltip(infoLines(entry, stack))
+        cell.child(Components.item(stack ?: ItemStack(Items.BARRIER)))
 
-        info.child(label(name).maxWidth(TEXT_WIDTH))
+        if (entry.current > 0) {
+            val count = label(entry.current.toString()).shadow(true)
+            count.positioning(Positioning.relative(100, 85))
+            count.zIndex(300) // otherwise the 3D item can draw over the text
+            cell.child(count)
+        }
+
+        if (entry.goal > 0 && entry.current > 0) {
+            val bar = progressBar(CELL - 2, entry.current, entry.goal, isComplete(entry))
+            bar.positioning(Positioning.relative(50, 100))
+            bar.zIndex(250)
+            cell.child(bar)
+        }
+
+        return cell
+    }
+
+    private fun infoLines(entry: RecipeCodexPacketEntry, stack: ItemStack?): List<Text> {
+        val lines = mutableListOf<Text>()
+
+        if (stack != null) lines.addAll(getTooltipFromItem(Minecraft.getInstance(), stack))
+        else lines.add(Text.literal(entry.itemKey))
 
         val progress = if (entry.goal <= 0) "Crafted: ${entry.current} (no goal)"
-        else if (complete) "Completed (${entry.current} / ${entry.goal})"
+        else if (isComplete(entry)) "Completed (${entry.current} / ${entry.goal})"
         else "${entry.current} / ${entry.goal} (${(fraction(entry.current, entry.goal) * 100).toInt()}%)"
-        info.child(label(progress, if (complete) GREEN else GRAY))
-
-        if (entry.goal > 0) info.child(progressBar(TEXT_WIDTH, entry.current, entry.goal, complete))
+        lines.add(colored(progress, if (isComplete(entry)) GREEN else GRAY))
 
         if (entry.totalFreeCount > 0) {
             val left = (entry.totalFreeCount - entry.usedFreeCount).coerceAtLeast(0)
-            info.child(label("Free: $left / ${entry.totalFreeCount} left", if (left > 0) GOLD else GRAY))
+            lines.add(colored("Free: $left / ${entry.totalFreeCount} left", if (left > 0) GOLD else GRAY))
         }
 
-        row.child(info)
-        return row
+        return lines
     }
+
+    private fun colored(text: String, color: Int): Text =
+        Text.literal(text).withStyle { it.withColor(color) }
+
+    private fun hasFreeCraft(entry: RecipeCodexPacketEntry): Boolean =
+        isComplete(entry) && entry.usedFreeCount < entry.totalFreeCount
 
     private fun progressBar(width: Int, current: Int, goal: Int, complete: Boolean): FlowLayout {
         val track = Containers.horizontalFlow(Sizing.fixed(width), Sizing.fixed(BAR_HEIGHT))
@@ -184,8 +214,6 @@ class RecipeCodexScreen : EmpyriumScreen("Recipe Codex") {
         return BuiltInRegistries.ITEM.getOptional(id).map { ItemStack(it) }.orElse(null)
     }
 
-    private fun filterText(): Text = Text.literal(if (hideCompleted) "Show completed" else "Hide completed")
-
 
     override fun createAdapter(): OwoUIAdapter<FlowLayout?> {
         return OwoUIAdapter.create(this, Containers::verticalFlow)
@@ -195,9 +223,10 @@ class RecipeCodexScreen : EmpyriumScreen("Recipe Codex") {
 
     private companion object {
         const val WIDTH = 240
-        const val TEXT_WIDTH = 190
+        const val COLUMNS = 8
+        const val CELL = 26
         const val BAR_HEIGHT = 5
-        const val PAGE_SIZE = 30
+        const val PAGE_SIZE = COLUMNS * 6
         const val GRAY = 0xAAAAAA
         const val GREEN = 0x55FF55
         const val GOLD = 0xFFAA00

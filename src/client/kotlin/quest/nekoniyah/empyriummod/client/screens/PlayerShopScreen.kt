@@ -121,12 +121,12 @@ class PlayerShopScreen : EmpyriumScreen("Player Shop") {
 
         if (tab == Tab.BROWSE && viewing == null) panel.child(buildSearchBox())
 
-        list = column()
+        list = column(WIDTH)
         panel.child(
             Containers.verticalScroll(Sizing.fixed(WIDTH), Sizing.fixed(maxOf(70, height - 150)), list)
         )
 
-        footer = column()
+        footer = column(WIDTH)
         panel.child(footer)
 
         refreshList()

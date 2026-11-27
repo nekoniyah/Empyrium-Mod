@@ -12,6 +12,11 @@ object KeybindEvents {
                 if (minecraft.player == null) return@register;
                 EmpyriumMod.NET_CHANNEL.clientHandle().send(KeybindPacket(1))
             }
+
+            while (EmpyriumModClient.keybinding.RECIPE_CODEX_KEYBIND.consumeClick()) {
+                if (minecraft.player == null) return@register
+                minecraft.setScreen(EmpyriumModClient.screenRegistry.find { sc -> sc.identifier == "recipe_codex" })
+            }
         }
     }
 }

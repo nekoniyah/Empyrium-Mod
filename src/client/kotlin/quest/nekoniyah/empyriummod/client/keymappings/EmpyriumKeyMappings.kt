@@ -17,4 +17,13 @@ class EmpyriumKeyMappings {
             CATEGORY.toLanguageKey()
         )
     )
+
+    val RECIPE_CODEX_KEYBIND: KeyMapping = KeyBindingHelper.registerKeyBinding(
+        KeyMapping(
+            "key.${EmpyriumModClient.MOD_ID}.screens.recipe_codex",
+            InputConstants.Type.KEYSYM,
+            InputConstants.KEY_C,
+            CATEGORY.toLanguageKey()
+        )
+    )
 }

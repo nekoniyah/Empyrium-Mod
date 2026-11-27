@@ -17,8 +17,8 @@ object Helpers {
 
     // ---------- UI helpers ----------
 
-    fun column(): FlowLayout {
-        val flow = Containers.verticalFlow(Sizing.fixed(PlayerShopScreen.WIDTH), Sizing.content())
+    fun column(width: Int): FlowLayout {
+        val flow = Containers.verticalFlow(Sizing.fixed(width), Sizing.content())
         flow.horizontalAlignment(HorizontalAlignment.CENTER)
         flow.gap(3)
         return flow
