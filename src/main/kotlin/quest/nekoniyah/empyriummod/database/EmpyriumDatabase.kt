@@ -16,16 +16,32 @@ import quest.nekoniyah.empyriummod.config.RecipeCodexConfig
 import quest.nekoniyah.empyriummod.economy.PlayerShopItem
 import quest.nekoniyah.empyriummod.economy.currencies.Currency
 import java.sql.Connection
+import java.nio.file.Files
+import java.nio.file.Path
 
 object EmpyriumDatabase {
     var db: Database? = null
-    fun init() {
-        db = Database.connect("jdbc:sqlite:./config/${EmpyriumMod.MOD_ID}/data.db", "org.sqlite.JDBC")
+    fun init(dbDir: Path) {
+
+        // Créer le répertoire dans world/ 
+        Files.createDirectories(dbDir)
+
+        // Récupère le path de la db
+        val dbFile = dbDir.resolve("data.db")
+
+        // Connexion à la db
+        db = Database.connect("jdbc:sqlite:${dbFile.toAbsolutePath()}", "org.sqlite.JDBC")
+
         TransactionManager.manager.defaultIsolationLevel = Connection.TRANSACTION_SERIALIZABLE
 
         transaction(db) {
             SchemaUtils.create(PlayerShopTable, PlayerCacheTable, PlayerCraftsTable, CurrencyBalanceTable)
         }
+    }
+
+    fun close() {
+        db?.let { TransactionManager.closeAndUnregister(it) }
+        db = null
     }
 
     fun getCachedPlayerName(uuid: String): String? {

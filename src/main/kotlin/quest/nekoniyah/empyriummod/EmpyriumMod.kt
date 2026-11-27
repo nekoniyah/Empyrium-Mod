@@ -9,6 +9,10 @@ import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents
 import net.minecraft.core.registries.BuiltInRegistries
 import net.minecraft.resources.ResourceLocation
 import net.minecraft.server.MinecraftServer
+import net.minecraft.world.entity.player.Player
+import net.minecraft.world.item.ItemStack
+import net.minecraft.world.item.Items
+import net.minecraft.world.level.storage.LevelResource
 import net.minecraft.world.item.Rarity
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
@@ -46,6 +50,9 @@ object EmpyriumMod : ModInitializer {
         ServerLifecycleEvents.SERVER_STARTED.register { srv ->
             server = srv
 
+            val dbDir = srv.getWorldPath(LevelResource.ROOT).resolve(MOD_ID)
+            EmpyriumDatabase.init(dbDir)
+            
             if (!RecipeCodexConfig.checkEmptiness()) return@register
 
             val allRecipes = srv.recipeManager.recipes
@@ -72,6 +79,11 @@ object EmpyriumMod : ModInitializer {
 
                     RecipeCodexConfig.addOne(RecipeCodexEntry(key.toString(), goal, freeCount))
                 }
+        }
+
+        ServerLifecycleEvents.SERVER_STOPPED.register {
+            server = null
+            EmpyriumDatabase.close()
         }
 
         ModItems.initialize()
