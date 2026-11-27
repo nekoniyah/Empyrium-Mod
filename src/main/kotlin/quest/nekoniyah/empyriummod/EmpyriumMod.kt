@@ -10,6 +10,7 @@ import net.minecraft.server.MinecraftServer
 import net.minecraft.world.entity.player.Player
 import net.minecraft.world.item.ItemStack
 import net.minecraft.world.item.Items
+import net.minecraft.world.level.storage.LevelResource
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import quest.nekoniyah.empyriummod.commands.EmpyriumCommand
@@ -44,6 +45,14 @@ object EmpyriumMod : ModInitializer {
 
         ServerLifecycleEvents.SERVER_STARTED.register { srv ->
             server = srv
+
+            val dbDir = srv.getWorldPath(LevelResource.ROOT).resolve(MOD_ID)
+            EmpyriumDatabase.init(dbDir)
+        }
+
+        ServerLifecycleEvents.SERVER_STOPPED.register {
+            server = null
+            EmpyriumDatabase.close()
         }
 
         ModItems.initialize()
@@ -53,8 +62,6 @@ object EmpyriumMod : ModInitializer {
             dispatcher.register(EmpyriumCommand(listOf(factions, difficulty, CurrencyCommand())).command)
             dispatcher.register(ShopCommand().command)
         }
-
-        EmpyriumDatabase.init()
 
         ServerPlayerEvents.JOIN.register { player ->
             EmpyriumDatabase.sellItem(player, ItemStack(Items.ACACIA_LOG), CurrencyRegistry[0], 10)
