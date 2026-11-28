@@ -5,7 +5,10 @@ import net.minecraft.network.chat.Component
 import net.minecraft.server.MinecraftServer
 import net.minecraft.world.entity.player.Player
 import quest.nekoniyah.empyriummod.EmpyriumMod.NET_CHANNEL
+import quest.nekoniyah.empyriummod.database.CurrencyBalanceTable
 import quest.nekoniyah.empyriummod.database.EmpyriumDatabase
+import quest.nekoniyah.empyriummod.database.PlayerCacheTable
+import quest.nekoniyah.empyriummod.database.PlayerShopTable
 import quest.nekoniyah.empyriummod.economy.currencies.CurrencyRegistry
 import quest.nekoniyah.empyriummod.network.packets.*
 import java.util.*
@@ -13,7 +16,7 @@ import java.util.*
 object PlayerShopEvents {
     fun register() {
         ServerPlayerEvents.JOIN.register { player ->
-            EmpyriumDatabase.cachePlayer(player)
+            PlayerCacheTable.cachePlayer(player)
             sendPlayerShopUpdate(player)
         }
 
@@ -26,11 +29,11 @@ object PlayerShopEvents {
 
         NET_CHANNEL.registerServerbound(CancelPlayerShopItemPacket::class.java) { packet, source ->
             val itemListingId = packet.id
-            val existingItem = EmpyriumDatabase.getItem(itemListingId) ?: return@registerServerbound
+            val existingItem = PlayerShopTable.getItem(itemListingId) ?: return@registerServerbound
 
             if (existingItem.sellerUuid != source.player.stringUUID) return@registerServerbound // Damn, they really wanna hack
 
-            val success = EmpyriumDatabase.removeItem(itemListingId)
+            val success = PlayerShopTable.removeItem(itemListingId)
 
             if (success) {
                 val decoded = EmpyriumDatabase.decodeStringToItemStack(existingItem.item)
@@ -51,7 +54,7 @@ object PlayerShopEvents {
 
             val newItemstack = itemstack.copyWithCount(itemstack.count - packet.count)
             player.inventory.setItem(packet.slot, newItemstack)
-            EmpyriumDatabase.sellItem(player, itemstack, curr, packet.price)
+            PlayerShopTable.sellItem(player, itemstack, curr, packet.price)
 
             sendMessage(source.player, true, "Put to sale.")
             sendPlayerShopUpdate(source.player.server)
@@ -59,10 +62,10 @@ object PlayerShopEvents {
 
         NET_CHANNEL.registerServerbound(BuyPlayerShopItemPacket::class.java) { packet, source ->
             val itemId = packet.id
-            val itemListing = EmpyriumDatabase.getItem(itemId) ?: return@registerServerbound
+            val itemListing = PlayerShopTable.getItem(itemId) ?: return@registerServerbound
 
             val player = source.player
-            val balance = EmpyriumDatabase.getBalance(player.stringUUID)
+            val balance = CurrencyBalanceTable.getBalance(player.stringUUID)
 
             if (balance < itemListing.price) return@registerServerbound sendMessage(
                 player, false, "You can't afford that!"
@@ -72,18 +75,18 @@ object PlayerShopEvents {
 
             val sellerUuid = itemListing.sellerUuid
 
-            EmpyriumDatabase.updatePlayerBalance(player, newBalance)
+            CurrencyBalanceTable.updatePlayerBalance(player, newBalance)
 
-            val sellerBalance = EmpyriumDatabase.getBalance(sellerUuid)
+            val sellerBalance = CurrencyBalanceTable.getBalance(sellerUuid)
 
-            EmpyriumDatabase.updatePlayerBalance(sellerUuid, sellerBalance + itemListing.price)
+            CurrencyBalanceTable.updatePlayerBalance(sellerUuid, sellerBalance + itemListing.price)
 
             val itemstack = EmpyriumDatabase.decodeStringToItemStack(itemListing.item) ?: error("")
 
             val seller = player.server.playerList.getPlayer(UUID.fromString(sellerUuid))
             seller?.sendSystemMessage(Component.literal("You sold ${itemListing.count}x $itemstack for ${itemListing.count} ${CurrencyRegistry.find { it.identifier == itemListing.currency }!!.name}"))
 
-            EmpyriumDatabase.removeItem(itemId)
+            PlayerShopTable.removeItem(itemId)
             player.inventory.add(itemstack)
             sendMessage(source.player, true, "Item bought.")
 
@@ -91,7 +94,7 @@ object PlayerShopEvents {
     }
 
     fun sendPlayerShopUpdate(server: MinecraftServer) {
-        val allItems = EmpyriumDatabase.getItems()
+        val allItems = PlayerShopTable.getItems()
 
         for (player in server.playerList.players) {
             NET_CHANNEL.serverHandle(player).send(PlayerShopResponsePacket(allItems))
@@ -99,7 +102,7 @@ object PlayerShopEvents {
     }
 
     fun sendPlayerShopUpdate(player: Player) {
-        val allItems = EmpyriumDatabase.getItems()
+        val allItems = PlayerShopTable.getItems()
         NET_CHANNEL.serverHandle(player).send(PlayerShopResponsePacket(allItems))
     }
 

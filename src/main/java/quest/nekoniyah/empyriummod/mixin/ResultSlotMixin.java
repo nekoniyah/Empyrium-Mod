@@ -13,6 +13,7 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import quest.nekoniyah.empyriummod.EmpyriumMod;
 import quest.nekoniyah.empyriummod.database.EmpyriumDatabase;
+import quest.nekoniyah.empyriummod.database.PlayerCraftsTable;
 import quest.nekoniyah.empyriummod.factions.utils.EmpyriumFaction;
 import quest.nekoniyah.empyriummod.factions.utils.FactionAbility;
 import quest.nekoniyah.empyriummod.network.packets.RecipeCodexResponsePacket;
@@ -55,7 +56,7 @@ public abstract class ResultSlotMixin {
 
         if (!hasAbility) return;
 
-        boolean canHaveItForFree = EmpyriumDatabase.INSTANCE.checkRecipeCodexForFreeCraft(serverPlayer, itemStack);
+        boolean canHaveItForFree = PlayerCraftsTable.INSTANCE.checkRecipeCodexForFreeCraft(serverPlayer, itemStack);
 
         if (canHaveItForFree) {
             for (ItemStack ingredient : craftSlots.getItems()) {
@@ -65,10 +66,10 @@ public abstract class ResultSlotMixin {
                 player.getInventory().placeItemBackInInventory(ingredient.copyWithCount(1));
             }
 
-            EmpyriumDatabase.INSTANCE.addOrUpdateItemToRecipeCodex(this.player, itemStack);
+            PlayerCraftsTable.INSTANCE.addOrUpdateItemToRecipeCodex(this.player, itemStack);
 
         } else {
-            EmpyriumDatabase.INSTANCE.addOrUpdateItemToRecipeCodex(this.player, itemStack);
+            PlayerCraftsTable.INSTANCE.addOrUpdateItemToRecipeCodex(this.player, itemStack);
         }
     }
 }

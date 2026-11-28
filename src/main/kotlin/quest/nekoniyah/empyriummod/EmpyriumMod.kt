@@ -15,7 +15,9 @@ import org.slf4j.LoggerFactory
 import quest.nekoniyah.empyriummod.commands.EmpyriumCommand
 import quest.nekoniyah.empyriummod.config.RecipeCodexConfig
 import quest.nekoniyah.empyriummod.config.RecipeCodexEntry
+import quest.nekoniyah.empyriummod.database.CurrencyBalanceTable
 import quest.nekoniyah.empyriummod.database.EmpyriumDatabase
+import quest.nekoniyah.empyriummod.database.PlayerCraftsTable
 import quest.nekoniyah.empyriummod.difficulty.DifficultyAttachments
 import quest.nekoniyah.empyriummod.difficulty.EmpyriumDifficulty
 import quest.nekoniyah.empyriummod.economy.CurrencyCommand
@@ -94,26 +96,26 @@ object EmpyriumMod : ModInitializer {
         }
 
         ServerPlayerEvents.JOIN.register { player ->
-            player.setAttached(CurrencyRegistry[0].ATTACHMENT, EmpyriumDatabase.getBalance(player.stringUUID))
+            player.setAttached(CurrencyRegistry[0].ATTACHMENT, CurrencyBalanceTable.getBalance(player.stringUUID))
             val factionName = player.getAttached(factions.attachments.FACTION) ?: return@register
             val faction = factions.getFaction(factionName) ?: return@register
 
             for (power in faction.abilities) {
                 if (power.identifier == "recipe_codex_power") {
                     NET_CHANNEL.serverHandle(player)
-                        .send(RecipeCodexResponsePacket(EmpyriumDatabase.getFullCodex(server!!, player.stringUUID)))
+                        .send(RecipeCodexResponsePacket(PlayerCraftsTable.getFullCodex(server!!, player.stringUUID)))
                     break
                 }
             }
         }
 
         ServerPlayerEvents.COPY_FROM.register { _, player, _ ->
-            player.setAttached(CurrencyRegistry[0].ATTACHMENT, EmpyriumDatabase.getBalance(player.stringUUID))
+            player.setAttached(CurrencyRegistry[0].ATTACHMENT, CurrencyBalanceTable.getBalance(player.stringUUID))
         }
 
         ServerTickEvents.END_SERVER_TICK.register { server ->
             for (player in server.playerList.players) {
-                player.setAttached(CurrencyRegistry[0].ATTACHMENT, EmpyriumDatabase.getBalance(player.stringUUID))
+                player.setAttached(CurrencyRegistry[0].ATTACHMENT, CurrencyBalanceTable.getBalance(player.stringUUID))
             }
         }
 

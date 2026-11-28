@@ -26,4 +26,13 @@ class EmpyriumKeyMappings {
             CATEGORY.toLanguageKey()
         )
     )
+
+    val OPEN_SHOP_KEYBIND: KeyMapping = KeyBindingHelper.registerKeyBinding(
+        KeyMapping(
+            "key.${EmpyriumModClient.MOD_ID}.screens.open_shop",
+            InputConstants.Type.KEYSYM,
+            InputConstants.KEY_H,
+            CATEGORY.toLanguageKey()
+        )
+    )
 }

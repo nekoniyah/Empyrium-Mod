@@ -22,7 +22,7 @@ Difficulty System (death)
 ## What have been done
 - Difficulty System: 100%
 - Factions & Powers: 85% (no capitals/no config)
-- Economy: 70% (1 Currenciy created: Players can see their balance in the HUD. Also commands for admins to give/take/set balance)
+- Economy: 70% (1 Currency created: Players can see their balance in the HUD. Also commands for admins to give/take/set balance)
 - Player Shop: 100% (maybe bug fixes to do)
 
 ## Setup
