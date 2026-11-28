@@ -55,7 +55,6 @@ class ClaimSelectorItem(properties: Item.Properties) : Item(properties) {
         return InteractionResult.SUCCESS
 
         //return super.useOn(useOnContext)
-
     }
 
     override fun isEnchantable(itemStack: ItemStack): Boolean {

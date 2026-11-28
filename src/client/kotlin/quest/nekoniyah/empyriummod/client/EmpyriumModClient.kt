@@ -140,7 +140,7 @@ object EmpyriumModClient : ClientModInitializer {
                 consumers,
                 BeaconRenderer.BEAM_LOCATION, // Texture officielle du faisceau
                 tickDelta,                    // Interpolation fluide entre les ticks
-                0.5f,                         // Échelle de hauteur (1.0 = standard)
+                1.0f,                         // Échelle de hauteur (1.0 = standard)
                 worldTime,                    // Temps du monde pour la rotation
                 0,                            // Décalage Y de départ (0 = base du bloc)
                 256,                          // Hauteur du faisceau en blocs
