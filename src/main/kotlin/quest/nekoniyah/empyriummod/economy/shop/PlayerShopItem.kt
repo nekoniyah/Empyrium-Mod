@@ -1,4 +1,4 @@
-package quest.nekoniyah.empyriummod.economy
+package quest.nekoniyah.empyriummod.economy.shop
 
 @JvmRecord
 data class PlayerShopItem(

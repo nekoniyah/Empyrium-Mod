@@ -14,7 +14,7 @@ import quest.nekoniyah.empyriummod.client.screens.PlayerShopScreen
 import quest.nekoniyah.empyriummod.client.screens.RecipeCodexScreen
 import quest.nekoniyah.empyriummod.client.screens.ShopResult
 import quest.nekoniyah.empyriummod.client.util.ui.CurrencyHud
-import quest.nekoniyah.empyriummod.economy.PlayerShopItem
+import quest.nekoniyah.empyriummod.economy.shop.PlayerShopItem
 import quest.nekoniyah.empyriummod.economy.currencies.CurrencyRegistry
 import quest.nekoniyah.empyriummod.network.packets.*
 

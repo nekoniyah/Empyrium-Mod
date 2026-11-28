@@ -16,7 +16,7 @@ import quest.nekoniyah.empyriummod.client.util.ui.Helpers.column
 import quest.nekoniyah.empyriummod.client.util.ui.Helpers.label
 import quest.nekoniyah.empyriummod.client.util.ui.Helpers.numberBox
 import quest.nekoniyah.empyriummod.client.util.ui.Helpers.row
-import quest.nekoniyah.empyriummod.economy.PlayerShopItem
+import quest.nekoniyah.empyriummod.economy.shop.PlayerShopItem
 import quest.nekoniyah.empyriummod.economy.currencies.CurrencyRegistry
 import net.minecraft.network.chat.Component as Text
 

@@ -9,7 +9,7 @@ import net.minecraft.commands.Commands
 import net.minecraft.commands.arguments.EntityArgument
 import net.minecraft.world.entity.player.Player
 import quest.nekoniyah.empyriummod.commands.SubcommandHolder
-import quest.nekoniyah.empyriummod.database.CurrencyBalanceTable
+import quest.nekoniyah.empyriummod.database.economy.CurrencyBalanceTable
 import quest.nekoniyah.empyriummod.economy.currencies.Currency
 import quest.nekoniyah.empyriummod.economy.currencies.CurrencyRegistry
 

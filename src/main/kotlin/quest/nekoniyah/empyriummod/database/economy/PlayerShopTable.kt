@@ -1,4 +1,4 @@
-package quest.nekoniyah.empyriummod.database
+package quest.nekoniyah.empyriummod.database.economy
 
 import com.mojang.serialization.JsonOps
 import net.minecraft.world.entity.player.Player
@@ -10,7 +10,8 @@ import org.jetbrains.exposed.v1.jdbc.insert
 import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import quest.nekoniyah.empyriummod.database.EmpyriumDatabase.db
-import quest.nekoniyah.empyriummod.economy.PlayerShopItem
+import quest.nekoniyah.empyriummod.database.PlayerCacheTable
+import quest.nekoniyah.empyriummod.economy.shop.PlayerShopItem
 import quest.nekoniyah.empyriummod.economy.currencies.Currency
 
 object PlayerShopTable : IntIdTable() {
@@ -39,12 +40,12 @@ object PlayerShopTable : IntIdTable() {
         if (res == null) return null
         return PlayerShopItem(
             res[PlayerShopTable.id].value,
-            res[PlayerShopTable.sellerUuid],
-            res[PlayerShopTable.itemData],
-            res[PlayerShopTable.itemCount],
-            res[PlayerShopTable.currency],
-            res[PlayerShopTable.price],
-            PlayerCacheTable.getCachedPlayerName(res[PlayerShopTable.sellerUuid]) ?: "Unknown"
+            res[sellerUuid],
+            res[itemData],
+            res[itemCount],
+            res[currency],
+            res[price],
+            PlayerCacheTable.getCachedPlayerName(res[sellerUuid]) ?: "Unknown"
         )
     }
 

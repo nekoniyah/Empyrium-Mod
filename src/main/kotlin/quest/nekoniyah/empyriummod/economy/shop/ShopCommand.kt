@@ -1,4 +1,4 @@
-package quest.nekoniyah.empyriummod.economy
+package quest.nekoniyah.empyriummod.economy.shop
 
 import com.mojang.brigadier.context.CommandContext
 import net.minecraft.commands.CommandSourceStack

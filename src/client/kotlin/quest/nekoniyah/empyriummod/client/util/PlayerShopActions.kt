@@ -1,7 +1,7 @@
 package quest.nekoniyah.empyriummod.client.util
 
 import quest.nekoniyah.empyriummod.EmpyriumMod
-import quest.nekoniyah.empyriummod.economy.PlayerShopItem
+import quest.nekoniyah.empyriummod.economy.shop.PlayerShopItem
 import quest.nekoniyah.empyriummod.network.packets.BuyPlayerShopItemPacket
 import quest.nekoniyah.empyriummod.network.packets.CancelPlayerShopItemPacket
 import quest.nekoniyah.empyriummod.network.packets.PlayerShopRequestPacket

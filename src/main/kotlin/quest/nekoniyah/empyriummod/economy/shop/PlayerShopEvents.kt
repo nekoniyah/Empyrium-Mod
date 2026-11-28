@@ -1,14 +1,14 @@
-package quest.nekoniyah.empyriummod.economy
+package quest.nekoniyah.empyriummod.economy.shop
 
 import net.fabricmc.fabric.api.entity.event.v1.ServerPlayerEvents
 import net.minecraft.network.chat.Component
 import net.minecraft.server.MinecraftServer
 import net.minecraft.world.entity.player.Player
 import quest.nekoniyah.empyriummod.EmpyriumMod.NET_CHANNEL
-import quest.nekoniyah.empyriummod.database.CurrencyBalanceTable
+import quest.nekoniyah.empyriummod.database.economy.CurrencyBalanceTable
 import quest.nekoniyah.empyriummod.database.EmpyriumDatabase
 import quest.nekoniyah.empyriummod.database.PlayerCacheTable
-import quest.nekoniyah.empyriummod.database.PlayerShopTable
+import quest.nekoniyah.empyriummod.database.economy.PlayerShopTable
 import quest.nekoniyah.empyriummod.economy.currencies.CurrencyRegistry
 import quest.nekoniyah.empyriummod.network.packets.*
 import java.util.*

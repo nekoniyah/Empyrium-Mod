@@ -1,4 +1,4 @@
-package quest.nekoniyah.empyriummod.database
+package quest.nekoniyah.empyriummod.database.economy
 
 import net.minecraft.world.entity.player.Player
 import org.jetbrains.exposed.v1.core.dao.id.IntIdTable
@@ -17,7 +17,7 @@ object CurrencyBalanceTable : IntIdTable() {
             CurrencyBalanceTable.upsert(body = {
                 it[uuid] = player.stringUUID
                 it[balance] = newBalance
-            }, where = { CurrencyBalanceTable.uuid eq player.stringUUID })
+            }, where = { uuid eq player.stringUUID })
         }
     }
 
@@ -25,7 +25,7 @@ object CurrencyBalanceTable : IntIdTable() {
         return transaction(db) {
             return@transaction CurrencyBalanceTable.selectAll().where { CurrencyBalanceTable.uuid eq uuid }
                 .firstOrNull()?.get(
-                    CurrencyBalanceTable.balance
+                    balance
                 ) ?: 0
         }
     }
@@ -35,7 +35,7 @@ object CurrencyBalanceTable : IntIdTable() {
             CurrencyBalanceTable.upsert(body = {
                 it[uuid] = vuuid
                 it[balance] = newBalance
-            }, where = { CurrencyBalanceTable.uuid eq vuuid })
+            }, where = { uuid eq vuuid })
         }
     }
 }

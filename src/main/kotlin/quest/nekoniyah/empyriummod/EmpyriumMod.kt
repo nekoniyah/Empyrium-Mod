@@ -15,15 +15,16 @@ import org.slf4j.LoggerFactory
 import quest.nekoniyah.empyriummod.commands.EmpyriumCommand
 import quest.nekoniyah.empyriummod.config.RecipeCodexConfig
 import quest.nekoniyah.empyriummod.config.RecipeCodexEntry
-import quest.nekoniyah.empyriummod.database.CurrencyBalanceTable
 import quest.nekoniyah.empyriummod.database.EmpyriumDatabase
 import quest.nekoniyah.empyriummod.database.PlayerCraftsTable
+import quest.nekoniyah.empyriummod.database.economy.CurrencyBalanceTable
 import quest.nekoniyah.empyriummod.difficulty.DifficultyAttachments
 import quest.nekoniyah.empyriummod.difficulty.EmpyriumDifficulty
 import quest.nekoniyah.empyriummod.economy.CurrencyCommand
-import quest.nekoniyah.empyriummod.economy.PlayerShopEvents
-import quest.nekoniyah.empyriummod.economy.ShopCommand
 import quest.nekoniyah.empyriummod.economy.currencies.CurrencyRegistry
+import quest.nekoniyah.empyriummod.economy.shop.EditAdminShopCommand
+import quest.nekoniyah.empyriummod.economy.shop.PlayerShopEvents
+import quest.nekoniyah.empyriummod.economy.shop.ShopCommand
 import quest.nekoniyah.empyriummod.factions.utils.EmpyriumFactions
 import quest.nekoniyah.empyriummod.factions.utils.FactionAttachments
 import quest.nekoniyah.empyriummod.factions.utils.PlayerFactionCommand
@@ -91,7 +92,16 @@ object EmpyriumMod : ModInitializer {
         difficulty.register()
 
         CommandRegistrationCallback.EVENT.register { dispatcher, _, _ ->
-            dispatcher.register(EmpyriumCommand(listOf(factions, difficulty, CurrencyCommand())).command())
+            dispatcher.register(
+                EmpyriumCommand(
+                    listOf(
+                        factions,
+                        difficulty,
+                        CurrencyCommand(),
+                        EditAdminShopCommand()
+                    )
+                ).command()
+            )
             dispatcher.register(ShopCommand().command())
             dispatcher.register(PlayerFactionCommand().command())
         }
