@@ -14,16 +14,16 @@ data class FactionInfo(
     val spawnX: Int?,
     val spawnY: Int?,
     val spawnZ: Int?,
-    val spawnDimension: Int?
+    val spawnDimension: String?
 )
 
 object FactionsTable : IntIdTable() {
     val name = varchar("faction_name", 50)
-    val description = varchar("faction_description", 50)
+    val description = text("faction_description")
     val spawnX = integer("spawn_x").nullable()
     val spawnY = integer("spawn_y").nullable()
     val spawnZ = integer("spawn_z").nullable()
-    val spawnDimension = integer("spawn_dimension").nullable()
+    val spawnDimension = varchar("spawn_dimension", 255).nullable()
 
     fun getFactionInfo(name: String): FactionInfo? {
         return transaction(EmpyriumDatabase.db) {
@@ -39,7 +39,7 @@ object FactionsTable : IntIdTable() {
         }
     }
 
-    fun setFactionSpawn(name: String, spawnX: Int, spawnY: Int, spawnZ: Int, spawnDimension: Int): Boolean {
+    fun setFactionSpawn(name: String, spawnX: Int, spawnY: Int, spawnZ: Int, spawnDimension: String): Boolean {
         return transaction(EmpyriumDatabase.db) {
             selectAll().where { FactionsTable.name eq name }.firstOrNull() ?: return@transaction false
 
