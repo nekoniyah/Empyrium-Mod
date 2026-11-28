@@ -25,6 +25,7 @@ import quest.nekoniyah.empyriummod.economy.currencies.CurrencyRegistry
 import quest.nekoniyah.empyriummod.factions.utils.EmpyriumFactions
 import quest.nekoniyah.empyriummod.factions.utils.FactionAttachments
 import quest.nekoniyah.empyriummod.factions.utils.PlayerFactionCommand
+import quest.nekoniyah.empyriummod.items.ModItems
 import quest.nekoniyah.empyriummod.network.packets.RecipeCodexResponsePacket
 
 object EmpyriumMod : ModInitializer {
