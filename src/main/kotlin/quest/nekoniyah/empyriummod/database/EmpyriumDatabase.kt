@@ -7,6 +7,9 @@ import org.jetbrains.exposed.v1.jdbc.Database
 import org.jetbrains.exposed.v1.jdbc.SchemaUtils
 import org.jetbrains.exposed.v1.jdbc.transactions.TransactionManager
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
+import quest.nekoniyah.empyriummod.database.claim.CapitalTable
+import quest.nekoniyah.empyriummod.database.claim.ClaimPointTable
+import quest.nekoniyah.empyriummod.database.claim.PlotTable
 import java.nio.file.Files
 import java.nio.file.Path
 import java.sql.Connection
@@ -28,7 +31,8 @@ object EmpyriumDatabase {
 
         transaction(db) {
             SchemaUtils.create(
-                PlayerShopTable, PlayerCacheTable, PlayerCraftsTable, CurrencyBalanceTable, FactionsTable
+                PlayerShopTable, PlayerCacheTable, PlayerCraftsTable, CurrencyBalanceTable, CapitalTable,
+                ClaimPointTable, PlotTable
             )
         }
     }
