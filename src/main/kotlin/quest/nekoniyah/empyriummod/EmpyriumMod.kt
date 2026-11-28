@@ -20,8 +20,10 @@ import quest.nekoniyah.empyriummod.database.PlayerCraftsTable
 import quest.nekoniyah.empyriummod.database.economy.CurrencyBalanceTable
 import quest.nekoniyah.empyriummod.difficulty.DifficultyAttachments
 import quest.nekoniyah.empyriummod.difficulty.EmpyriumDifficulty
+import quest.nekoniyah.empyriummod.economy.AdminShopServer
 import quest.nekoniyah.empyriummod.economy.CurrencyCommand
 import quest.nekoniyah.empyriummod.economy.currencies.CurrencyRegistry
+import quest.nekoniyah.empyriummod.economy.shop.AdminShopCommand
 import quest.nekoniyah.empyriummod.economy.shop.EditAdminShopCommand
 import quest.nekoniyah.empyriummod.economy.shop.PlayerShopEvents
 import quest.nekoniyah.empyriummod.economy.shop.ShopCommand
@@ -91,6 +93,8 @@ object EmpyriumMod : ModInitializer {
         ModItems.initialize()
         difficulty.register()
 
+        AdminShopServer.register()
+
         CommandRegistrationCallback.EVENT.register { dispatcher, _, _ ->
             dispatcher.register(
                 EmpyriumCommand(
@@ -104,6 +108,7 @@ object EmpyriumMod : ModInitializer {
             )
             dispatcher.register(ShopCommand().command())
             dispatcher.register(PlayerFactionCommand().command())
+            dispatcher.register(AdminShopCommand().command())
         }
 
         ServerPlayerEvents.JOIN.register { player ->

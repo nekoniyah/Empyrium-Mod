@@ -8,14 +8,10 @@ import quest.nekoniyah.empyriummod.EmpyriumMod
 import quest.nekoniyah.empyriummod.client.events.KeybindEvents
 import quest.nekoniyah.empyriummod.client.keymappings.EmpyriumKeyMappings
 import quest.nekoniyah.empyriummod.client.overlays.EmpyriumOverlay
-import quest.nekoniyah.empyriummod.client.screens.EmpyriumScreen
-import quest.nekoniyah.empyriummod.client.screens.FactionSelectionScreen
-import quest.nekoniyah.empyriummod.client.screens.PlayerShopScreen
-import quest.nekoniyah.empyriummod.client.screens.RecipeCodexScreen
-import quest.nekoniyah.empyriummod.client.screens.ShopResult
+import quest.nekoniyah.empyriummod.client.screens.*
 import quest.nekoniyah.empyriummod.client.util.ui.CurrencyHud
-import quest.nekoniyah.empyriummod.economy.shop.PlayerShopItem
 import quest.nekoniyah.empyriummod.economy.currencies.CurrencyRegistry
+import quest.nekoniyah.empyriummod.economy.shop.PlayerShopItem
 import quest.nekoniyah.empyriummod.network.packets.*
 
 object EmpyriumModClient : ClientModInitializer {
@@ -23,8 +19,14 @@ object EmpyriumModClient : ClientModInitializer {
 
     lateinit var keybinding: EmpyriumKeyMappings
 
-    val screenRegistry: ArrayList<EmpyriumScreen> = arrayListOf(FactionSelectionScreen(), PlayerShopScreen(),
-        RecipeCodexScreen())
+    val screenRegistry: List<() -> EmpyriumScreen> = listOf(
+        ::FactionSelectionScreen, ::PlayerShopScreen, ::RecipeCodexScreen, ::AdminShopScreen, ::AdminShopEditorScreen
+    )
+
+    fun getScreen(identifier: String): EmpyriumScreen? = screenRegistry.firstNotNullOfOrNull { create ->
+        create().takeIf { it.identifier == identifier }
+    }
+
     var cachedPlayerShopItems: List<PlayerShopItem> = listOf()
 
     var codex: List<RecipeCodexPacketEntry> = listOf()
@@ -33,6 +35,8 @@ object EmpyriumModClient : ClientModInitializer {
         // This entrypoint is suitable for setting up client-specific logic, such as rendering.
 
         keybinding = EmpyriumKeyMappings()
+
+        AdminShopClient.register()
 
         EmpyriumMod.NET_CHANNEL.registerClientbound(OpenScreenPacket::class.java) { packet, access ->
             val screen = getScreen(packet.screenName) ?: return@registerClientbound
@@ -55,8 +59,12 @@ object EmpyriumModClient : ClientModInitializer {
         }
 
         EmpyriumMod.NET_CHANNEL.registerClientbound(PlayerShopMessagePacket::class.java) { packet, _ ->
-            (Minecraft.getInstance().screen as? PlayerShopScreen)
-                ?.onShopResult(ShopResult(packet.success, packet.message))
+            (Minecraft.getInstance().screen as? PlayerShopScreen)?.onShopResult(
+                ShopResult(
+                    packet.success,
+                    packet.message
+                )
+            )
         }
 
         EmpyriumMod.NET_CHANNEL.registerClientbound(RecipeCodexResponsePacket::class.java) { packet, _ ->
@@ -82,13 +90,6 @@ object EmpyriumModClient : ClientModInitializer {
 
         EmpyriumOverlay.init()
     }
-
-
-    fun getScreen(identifier: String): EmpyriumScreen? {
-        return screenRegistry.find { it.identifier == identifier }
-    }
-
-
 
 
     fun id(path: String): ResourceLocation = ResourceLocation.fromNamespaceAndPath(MOD_ID, path)

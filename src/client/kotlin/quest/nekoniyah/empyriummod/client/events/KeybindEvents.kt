@@ -15,7 +15,12 @@ object KeybindEvents {
 
             while (EmpyriumModClient.keybinding.RECIPE_CODEX_KEYBIND.consumeClick()) {
                 if (minecraft.player == null) return@register
-                minecraft.setScreen(EmpyriumModClient.screenRegistry.find { sc -> sc.identifier == "recipe_codex" })
+                minecraft.setScreen(EmpyriumModClient.getScreen("recipe_codex"))
+            }
+
+            while (EmpyriumModClient.keybinding.OPEN_SHOP_KEYBIND.consumeClick()) {
+                if (minecraft.player == null) return@register
+                minecraft.setScreen(EmpyriumModClient.getScreen("player_shop"))
             }
         }
     }

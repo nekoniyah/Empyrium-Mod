@@ -14,11 +14,12 @@ import net.minecraft.world.item.Items
 import quest.nekoniyah.empyriummod.commands.SubcommandHolder
 import quest.nekoniyah.empyriummod.database.economy.AdminShopCategoryTable
 import quest.nekoniyah.empyriummod.database.economy.AdminShopTable
+import quest.nekoniyah.empyriummod.economy.AdminShopServer
 import quest.nekoniyah.empyriummod.economy.currencies.CurrencyRegistry
 
 class EditAdminShopCommand : SubcommandHolder("adminshop", true) {
     override fun execute(ctx: CommandContext<CommandSourceStack>): Int {
-        return 1
+       return openGUI(ctx)
     }
 
     val categoryCommand: LiteralArgumentBuilder<CommandSourceStack> = Commands.literal("category").then(
@@ -44,6 +45,13 @@ class EditAdminShopCommand : SubcommandHolder("adminshop", true) {
     )
 
 
+    fun openGUI(ctx: CommandContext<CommandSourceStack>): Int {
+        val player = ctx.source.player ?: return 0
+        AdminShopServer.open(player, true)
+        return 1
+    }
+
+
     fun executeAddItemToCategory(ctx: CommandContext<CommandSourceStack>): Int {
         val category = StringArgumentType.getString(ctx, "categoryName")
         val sellPrice = IntegerArgumentType.getInteger(ctx, "sellprice")
@@ -58,15 +66,21 @@ class EditAdminShopCommand : SubcommandHolder("adminshop", true) {
             return 0
         }
 
-        val jsonElement = ItemStack.CODEC.encodeStart(JsonOps.INSTANCE, itemInHand).resultOrPartial().orElseThrow()
-
+        val ops = player.registryAccess().createSerializationContext(JsonOps.INSTANCE)
+        val jsonElement = ItemStack.CODEC.encodeStart(ops, itemInHand).result().orElse(null) ?: return 0
         val itemString = jsonElement.asJsonObject.toString()
+
+        val categoryInfo = AdminShopCategoryTable.getCategories().find { it.name == category }
+        if (categoryInfo == null) {
+            ctx.source.sendFailure(Component.literal("Unknown category: $category"))
+            return 0
+        }
 
         val ok = AdminShopTable.addItem(
             itemString,
             itemInHand.count,
             CurrencyRegistry.first().identifier,
-            AdminShopCategoryTable.getCategories().find { it.name == category }!!.id,
+            categoryInfo.id,
             if (sellPrice == 0) null else sellPrice,
             if (buyPrice == 0) null else buyPrice
         )
