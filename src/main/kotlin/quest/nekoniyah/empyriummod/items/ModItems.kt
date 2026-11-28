@@ -1,4 +1,4 @@
-package quest.nekoniyah.empyriummod
+package quest.nekoniyah.empyriummod.items
 
 import net.fabricmc.fabric.api.itemgroup.v1.ItemGroupEvents
 import net.minecraft.core.Registry
@@ -8,11 +8,15 @@ import net.minecraft.resources.ResourceLocation
 import net.minecraft.world.item.CreativeModeTab
 import net.minecraft.world.item.CreativeModeTabs
 import net.minecraft.world.item.Item
-import quest.nekoniyah.empyriummod.items.TestItem
+import quest.nekoniyah.empyriummod.EmpyriumMod
+import quest.nekoniyah.empyriummod.items.claim.ClaimSelectorItem
 
 object ModItems {
 
     val registeredItems = listOf(TestItem)
+
+    val CLAIM_SELECTOR: Item = register(ClaimSelectorItem(Item.Properties().stacksTo(1)), "claim_selector")
+
 
     fun register(item: Item, id: String): Item {
         // Create the identifier for the item.
@@ -22,6 +26,7 @@ object ModItems {
         // Return the registered item!
         return registeredItem
     }
+
 
     fun listenItemGroupEventWith(key: ResourceKey<CreativeModeTab>) {
         ItemGroupEvents.modifyEntriesEvent(key).register { e ->

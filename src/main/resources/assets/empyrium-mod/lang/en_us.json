@@ -5,5 +5,6 @@
   "key.empyrium-mod.screens.open_shop": "Opens the Player Shop",
   "empyrium-mod.keybinds.category": "Empyrium",
   "faction.empyrium-mod.human.name": "Human",
-  "faction.empyrium-mod.human.description": "Human"
+  "faction.empyrium-mod.human.description": "Human",
+  "item.empyrium-mod.claim_selector": "Claim Selector"
 }
